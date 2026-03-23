@@ -336,8 +336,7 @@ const IDX_INFO={
   mpi:{
     icon:'🎯', name:'MPI', full:'Market Penetration Index',
     formula:'OCC% Hotel ÷ OCC% Rata-rata Pasar',
-    formula2:'= Rooms Sold Hotel / Rooms Available Hotel
-  ÷ (Σ Rooms Sold Semua) / (Σ Rooms Available Semua)',
+    formula2:'= Rooms Sold Hotel / Rooms Available Hotel \n  ÷ (Σ Rooms Sold Semua) / (Σ Rooms Available Semua)',
     desc:'Mengukur seberapa baik tingkat hunian hotel dibanding rata-rata semua kompetitor di pasar.',
     scale:[
       {cls:'s-exc',range:'≥ 1.20',label:'Excellent — jauh di atas pasar'},
@@ -349,8 +348,7 @@ const IDX_INFO={
   ari:{
     icon:'💰', name:'ARI', full:'Average Rate Index',
     formula:'ARR Hotel ÷ ARR Rata-rata Pasar',
-    formula2:'= ARR Hotel
-  ÷ (Σ ARR×RoomsSold Semua) / (Σ RoomsSold Semua)',
+    formula2:'= ARR Hotel \n  ÷ (Σ ARR×RoomsSold Semua) / (Σ RoomsSold Semua)',
     desc:'Mengukur daya saing harga kamar hotel. Apakah harga kita lebih tinggi atau rendah vs kompetitor.',
     scale:[
       {cls:'s-exc',range:'≥ 1.20',label:'Premium — harga jauh di atas pasar'},
@@ -362,9 +360,7 @@ const IDX_INFO={
   rgi:{
     icon:'📈', name:'RGI', full:'Revenue Generation Index',
     formula:'RevPAR Hotel ÷ RevPAR Rata-rata Pasar',
-    formula2:'= (ARR × OCC%) Hotel
-  ÷ (ARR × OCC%) Market Avg
-  ≡ MPI × ARI',
+    formula2:'= (ARR × OCC%) Hotel \n  ÷ (ARR × OCC%) Market Avg \n  ≡ MPI × ARI',
     desc:'Indikator utama kinerja revenue. Gabungan OCC dan ARR vs pasar. Nilai >1.00 berarti hotel menghasilkan revenue per kamar lebih baik dari kompetitor.',
     scale:[
       {cls:'s-exc',range:'≥ 1.20',label:'Excellent — revenue jauh melampaui pasar'},
