@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hotel Comparison Report — Lotus Garden by WH</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#07070a;--surface:#0e0e14;--card:#13131c;--border:rgba(255,255,255,.07);
+  --gold:#c9a84c;--gold2:#e8d07a;--gold-dim:#2e2410;
+  --text:#e8e4d8;--muted:#6a6678;--dim:#3a3650;
+  --green:#2dba72;--red:#e05555;--blue:#5b8ff9;--purple:#9d6ef5;--orange:#f59e42;--cyan:#38d9d9;
+  --shadow:rgba(0,0,0,.5);
+}
+/* ── LIGHT MODE ── */
+body.light{
+  --bg:#f0eeea;--surface:#ffffff;--card:#ffffff;--border:rgba(0,0,0,.09);
+  --gold:#8a6820;--gold2:#6b5015;--gold-dim:#fdf3dc;
+  --text:#1a1814;--muted:#6b6558;--dim:#c8c0b0;
+  --green:#1a8c4e;--red:#c0271f;--blue:#1a56c4;--purple:#6b34c4;--orange:#b85c00;--cyan:#0f7d7d;
+  --shadow:rgba(0,0,0,.12);
+}
+body.light #site-header{background:#ffffff;border-bottom:1px solid var(--border);}
+body.light .drop-box{border-color:#d4cfc7;}
+body.light .drop-box:hover,body.light .drop-box.over{border-color:var(--gold);background:var(--gold-dim);}
+body.light .pick-btn:hover{background:var(--gold);color:#fff;}
+body.light .tb th{background:rgba(138,104,32,.07);}
+body.light .tb td{color:var(--text);}
+body.light .tb tr.lrow td{background:rgba(138,104,32,.05);}
+body.light .tb tr:hover td{background:rgba(0,0,0,.02);}
+body.light .r2{color:#555;}
+body.light .r3{color:#8c4a1a;}
+body.light .rn{background:rgba(0,0,0,.06);color:var(--muted);}
+body.light .stitle::after{background:linear-gradient(90deg,var(--gold-dim),transparent);}
+body.light .view-banner.today{background:rgba(26,86,196,.05);}
+body.light .view-banner.mtd{background:rgba(26,140,78,.05);}
+body.light .view-banner.ytd{background:rgba(138,104,32,.05);}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── UPLOAD ── */
+#upload-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;}
+.up-logo{font-family:'DM Serif Display',serif;font-size:11px;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+.up-title{font-size:26px;font-weight:700;color:var(--text);margin-bottom:36px;text-align:center;}
+.drop-box{width:100%;max-width:560px;border:2px dashed var(--dim);border-radius:18px;padding:44px 32px;text-align:center;cursor:pointer;transition:all .25s;background:var(--card);}
+.drop-box:hover,.drop-box.over{border-color:var(--gold);background:var(--gold-dim);}
+.drop-icon{font-size:44px;margin-bottom:14px;}
+.drop-hint{font-size:13px;color:var(--muted);line-height:1.8;margin-top:8px;}
+.drop-hint strong{color:var(--text);}
+#file-input{display:none;}
+.pick-btn{display:inline-block;margin-top:18px;padding:9px 26px;background:var(--gold-dim);border:1.5px solid var(--gold);border-radius:8px;color:var(--gold);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+.pick-btn:hover{background:var(--gold);color:#000;}
+.url-row{display:flex;gap:8px;max-width:560px;width:100%;margin-top:20px;}
+.url-inp{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:12px;outline:none;}
+.url-inp:focus{border-color:var(--gold);}
+.url-inp::placeholder{color:var(--muted);}
+.url-btn{padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.url-btn:hover{border-color:var(--gold);color:var(--gold);}
+#up-err{color:var(--red);font-size:12px;margin-top:12px;display:none;}
+#up-load{color:var(--muted);font-size:12px;margin-top:12px;display:none;}
+
+/* ── HEADER ── */
+#site-header{background:linear-gradient(135deg,#07070a,#0f0c1a 50%,#0a0e07);border-bottom:1px solid var(--border);padding:16px 40px;position:sticky;top:0;z-index:100;display:none;}
+.hi{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.hlogo h1{font-family:'DM Serif Display',serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:2px;}
+.hlogo h2{font-size:15px;font-weight:700;color:var(--text);}
+.hctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.hbtn{padding:6px 13px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;}
+.hbtn:hover{border-color:var(--gold);color:var(--gold);}
+#hfile{font-size:10px;color:var(--muted);}
+
+/* ── FILTER BAR ── */
+#filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 40px;display:none;overflow-x:auto;}
+.fbar-inner{display:flex;align-items:stretch;gap:0;min-height:44px;}
+
+/* Month tabs */
+.m-tabs{display:flex;gap:3px;align-items:center;padding:6px 0;border-right:1px solid var(--border);padding-right:14px;margin-right:14px;}
+.m-tab{padding:4px 11px;border-radius:5px;border:1px solid transparent;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap;}
+.m-tab:hover{color:var(--text);border-color:var(--dim);}
+.m-tab.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);}
+.m-tab.nodata{opacity:.3;pointer-events:none;}
+
+/* View tabs: TODAY / MTD / YTD */
+.v-tabs{display:flex;gap:3px;align-items:center;padding:6px 0;border-right:1px solid var(--border);padding-right:14px;margin-right:14px;}
+.v-tab{padding:5px 14px;border-radius:5px;border:1px solid transparent;font-size:11px;font-weight:700;letter-spacing:.05em;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap;}
+.v-tab:hover{color:var(--text);border-color:var(--dim);}
+.v-tab.active{border-color:var(--border);}
+.v-tab[data-v="today"].active{background:rgba(91,143,249,.12);border-color:var(--blue);color:var(--blue);}
+.v-tab[data-v="mtd"].active{background:rgba(45,186,114,.12);border-color:var(--green);color:var(--green);}
+.v-tab[data-v="ytd"].active{background:rgba(201,168,76,.12);border-color:var(--gold);color:var(--gold);}
+
+/* Refresh */
+.ref-wrap{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);padding:6px 0;}
+.ref-wrap select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;cursor:pointer;}
+#ref-status{color:var(--green);font-size:10px;}
+
+/* ── MAIN ── */
+#main{max-width:1600px;margin:0 auto;padding:24px 40px;display:none;}
+@media(max-width:900px){#site-header,#filter-bar,#main{padding-left:16px;padding-right:16px;}}
+
+/* ── VIEW LABEL BANNER ── */
+.view-banner{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding:12px 18px;border-radius:10px;border:1px solid;}
+.view-banner.today{background:rgba(91,143,249,.06);border-color:rgba(91,143,249,.2);}
+.view-banner.mtd{background:rgba(45,186,114,.06);border-color:rgba(45,186,114,.2);}
+.view-banner.ytd{background:rgba(201,168,76,.06);border-color:rgba(201,168,76,.2);}
+.vb-icon{font-size:20px;}
+.vb-title{font-family:'DM Serif Display',serif;font-size:14px;letter-spacing:.05em;}
+.today .vb-title{color:var(--blue);}
+.mtd .vb-title{color:var(--green);}
+.ytd .vb-title{color:var(--gold);}
+.vb-sub{font-size:11px;color:var(--muted);}
+
+/* ── SECTION TITLE ── */
+.stitle{font-family:'DM Serif Display',serif;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.stitle::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--gold-dim),transparent);}
+
+/* ── KPI ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:24px;}
+.kc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;transition:border-color .2s;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac,var(--gold));opacity:.6;}
+.kc:hover{border-color:var(--ac,var(--gold));}
+.kl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.kv{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;line-height:1.1;}
+.ks{font-size:10px;color:var(--muted);margin-top:3px;}
+.kb{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:4px;}
+.up{background:rgba(45,186,114,.12);color:var(--green);}
+.dn{background:rgba(224,85,85,.12);color:var(--red);}
+.nu{background:rgba(91,143,249,.12);color:var(--blue);}
+
+/* ── CHARTS ── */
+.crow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+@media(max-width:1100px){.crow{grid-template-columns:1fr;}}
+.cc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;}
+.ct{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+.cw{position:relative;height:230px;}
+
+/* ── TABLE ── */
+.tw{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:24px;overflow-x:auto;}
+.tb{width:100%;border-collapse:collapse;font-size:12px;min-width:860px;}
+.tb th{background:rgba(201,168,76,.08);padding:9px 12px;text-align:left;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);border-bottom:1px solid var(--border);white-space:nowrap;}
+.tb td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);white-space:nowrap;}
+.tb tr:last-child td{border-bottom:none;}
+.tb tr.lrow td{background:rgba(201,168,76,.04);}
+.tb tr:hover td{background:rgba(255,255,255,.02);}
+.hd{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px;}
+.rb{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;}
+.r1{background:rgba(201,168,76,.2);color:var(--gold);}
+.r2{background:rgba(168,168,168,.15);color:#aaa;}
+.r3{background:rgba(176,104,55,.15);color:#b06837;}
+.rn{background:rgba(255,255,255,.06);color:var(--muted);}
+
+/* ── YTD TREND ── */
+#ytd-charts{margin-top:4px;}
+
+/* ── THEME TOGGLE ── */
+.theme-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;
+  border:1px solid var(--border);background:var(--card);color:var(--text);
+  font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;}
+.theme-btn:hover{border-color:var(--gold);}
+.theme-btn .tb-icon{font-size:13px;transition:transform .3s;}
+body.light .theme-btn .tb-icon{transform:rotate(180deg);}
+
+/* ── INDEX POPUP TOOLTIP ── */
+.idx-tip{position:relative;cursor:help;}
+.idx-tip-label{display:inline-flex;align-items:center;gap:4px;border-bottom:1px dashed currentColor;padding-bottom:1px;}
+.idx-tip-label .tip-dot{font-size:9px;opacity:.6;}
+.tip-popup{
+  position:absolute;z-index:999;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
+  min-width:280px;max-width:320px;
+  background:var(--surface);border:1px solid var(--gold);border-radius:12px;
+  padding:16px;box-shadow:0 12px 40px var(--shadow);
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;
+  transform:translateX(-50%) translateY(6px);
+}
+.tip-popup.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+.tip-popup::after{
+  content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:var(--gold);
+}
+.tp-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.tp-icon{font-size:18px;}
+.tp-name{font-family:'DM Serif Display',serif;font-size:14px;color:var(--gold);font-weight:700;}
+.tp-full{font-size:10px;color:var(--muted);margin-bottom:10px;font-style:italic;}
+.tp-formula{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.15);border-radius:7px;padding:9px 11px;margin-bottom:10px;}
+body.light .tp-formula{background:rgba(138,104,32,.06);border-color:rgba(138,104,32,.12);}
+.tp-formula-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.tp-formula-code{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);line-height:1.6;}
+.tp-scale{display:flex;flex-direction:column;gap:4px;}
+.tp-scale-row{display:flex;align-items:center;gap:8px;font-size:11px;}
+.tp-scale-badge{min-width:50px;text-align:center;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;font-family:'DM Mono',monospace;}
+.s-exc{background:rgba(45,186,114,.15);color:#1a8c4e;}
+.s-gd {background:rgba(45,186,114,.08);color:var(--green);}
+.s-ok {background:rgba(245,158,66,.12);color:var(--orange);}
+.s-low{background:rgba(224,85,85,.12);color:var(--red);}
+body.light .s-exc{background:rgba(26,140,78,.12);color:#1a8c4e;}
+body.light .s-gd {background:rgba(26,140,78,.07);color:var(--green);}
+body.light .s-ok {background:rgba(184,92,0,.1);color:var(--orange);}
+body.light .s-low{background:rgba(192,39,31,.1);color:var(--red);}
+.tp-divider{height:1px;background:var(--border);margin:8px 0;}
+
+/* prevent popup cut off at edges */
+.idx-tip:first-child .tip-popup{left:0;transform:translateX(0);}
+.idx-tip:first-child .tip-popup.show{transform:translateX(0) translateY(0);}
+.idx-tip:first-child .tip-popup::after{left:24px;}
+.idx-tip:last-child .tip-popup{left:auto;right:0;transform:translateX(0);}
+.idx-tip:last-child .tip-popup.show{transform:translateX(0) translateY(0);}
+.idx-tip:last-child .tip-popup::after{left:auto;right:24px;}
+
+</style>
+</head>
+<body>
+
+<!-- UPLOAD SCREEN -->
+<div id="upload-screen">
+  <div class="up-logo">✦ Lotus Garden Hotel by WH</div>
+  <div class="up-title">Hotel Comparison Report</div>
+  <div class="drop-box" id="drop-box" onclick="document.getElementById('file-input').click()">
+    <div class="drop-icon">📂</div>
+    <div style="font-size:14px;font-weight:600;color:var(--text)">Upload File Excel</div>
+    <div class="drop-hint">Drag &amp; drop atau klik pilih file<br>Format: <strong>.xlsx / .xls</strong> · Hotel Comparison</div>
+    <div class="pick-btn">Pilih File</div>
+    <input type="file" id="file-input" accept=".xlsx,.xls">
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-top:14px;">ATAU DARI URL / NETWORK</div>
+  <div class="url-row">
+    <input class="url-inp" id="url-inp" placeholder="📡 Load dari URL (Google Drive, link langsung .xlsx)">
+    <button class="url-btn" onclick="loadUrl()">📡 Load</button>
+  </div>
+  <div id="up-err"></div>
+  <div id="up-load"></div>
+  <div style="margin-top:28px;">
+    <button class="theme-btn" onclick="toggleTheme()" style="margin:auto;">
+      <span class="tb-icon">🌙</span><span id="theme-lbl-up">Mode Gelap</span>
+    </button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<header id="site-header">
+  <div class="hi">
+    <div class="hlogo">
+      <h1>✦ Hotel Comparison Report</h1>
+      <h2 id="header-title">Lotus Garden — Competitive Analysis</h2>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span id="hfile"></span>
+      <div class="hctrl">
+        <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle Light/Dark Mode">
+          <span class="tb-icon">🌙</span><span id="theme-lbl">Dark</span>
+        </button>
+        <button class="hbtn" onclick="doRefresh()">↺ Refresh</button>
+        <button class="hbtn" onclick="changeFile()">📂 Ganti File</button>
+        <button class="hbtn" onclick="window.print()">🖨 Print</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- FILTER BAR: Month + TODAY/MTD/YTD + Refresh -->
+<div id="filter-bar">
+  <div class="fbar-inner">
+    <div class="m-tabs" id="m-tabs"></div>
+    <div class="v-tabs">
+      <button class="v-tab active" data-v="today" onclick="selectView('today')">📅 Today</button>
+      <button class="v-tab" data-v="mtd" onclick="selectView('mtd')">📊 MTD</button>
+      <button class="v-tab" data-v="ytd" onclick="selectView('ytd')">📈 YTD</button>
+    </div>
+    <div class="ref-wrap">
+      Auto-refresh
+      <select id="ref-sel" onchange="setTimer()">
+        <option value="0">Off</option>
+        <option value="60000">1 mnt</option>
+        <option value="300000" selected>5 mnt</option>
+        <option value="600000">10 mnt</option>
+      </select>
+      <span id="ref-status"></span>
+    </div>
+  </div>
+</div>
+
+<main id="main"></main>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════
+const SH=['JAN','FEB','MAR','APR','MEI','JUN','JUL','AUG','SEP','OKT','NOV','DES'];
+const MN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const HC=['#c9a84c','#5b8ff9','#2dba72','#e05555','#f59e42','#9d6ef5','#38d9d9','#f97316','#a78bfa'];
+const HMAP={
+  'LOTUS GARDEN HOTEL ':'LGH','LOTUS GARDEN HOTEL':'LGH',
+  'MERDEKA HOTEL':'Merdeka','INSUMO PALACE':'Insumo',
+  'BUKIT DAUN HOTEL':'Bukit Daun','CITI HUB':'Citi Hub',
+  'VIVA HOTEL':'Viva','FAVE HOTEL':'Fave',
+  'FRONT ONE IN KATANG':'Front One','GRAND SURYA':'Grand Surya'
+};
+
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let D=null,curM='JAN',curV='today',charts={},timer=null,lastFile=null,lastUrl=null,dataYear=null;
+let _darkMode=true;
+
+// ══════════════════════════════════════════════════════
+// THEME TOGGLE
+// ══════════════════════════════════════════════════════
+function toggleTheme(){
+  _darkMode=!_darkMode;
+  document.body.classList.toggle('light',!_darkMode);
+  const icon=_darkMode?'🌙':'☀️';
+  const lbl=_darkMode?'Dark':'Light';
+  document.querySelectorAll('.tb-icon').forEach(el=>el.textContent=icon);
+  const l1=document.getElementById('theme-lbl');if(l1)l1.textContent=lbl;
+  const l2=document.getElementById('theme-lbl-up');if(l2)l2.textContent=(_darkMode?'Mode Gelap':'Mode Terang');
+  try{localStorage.setItem('hc_theme',_darkMode?'dark':'light');}catch(_){}
+  // re-render charts with correct colors
+  if(D) render();
+}
+// Load saved theme
+(function(){
+  try{const t=localStorage.getItem('hc_theme');if(t==='light'){_darkMode=false;document.body.classList.add('light');
+    document.querySelectorAll('.tb-icon').forEach(el=>el.textContent='☀️');
+    const l1=document.getElementById('theme-lbl');if(l1)l1.textContent='Light';
+    const l2=document.getElementById('theme-lbl-up');if(l2)l2.textContent='Mode Terang';
+  }}catch(_){}
+})();
+
+// ══════════════════════════════════════════════════════
+// INDEX TOOLTIP DEFINITIONS
+// ══════════════════════════════════════════════════════
+const IDX_INFO={
+  mpi:{
+    icon:'🎯', name:'MPI', full:'Market Penetration Index',
+    formula:'OCC% Hotel ÷ OCC% Rata-rata Pasar',
+    formula2:'= Rooms Sold Hotel / Rooms Available Hotel
+  ÷ (Σ Rooms Sold Semua) / (Σ Rooms Available Semua)',
+    desc:'Mengukur seberapa baik tingkat hunian hotel dibanding rata-rata semua kompetitor di pasar.',
+    scale:[
+      {cls:'s-exc',range:'≥ 1.20',label:'Excellent — jauh di atas pasar'},
+      {cls:'s-gd', range:'1.00–1.19',label:'Good — di atas rata-rata pasar'},
+      {cls:'s-ok', range:'0.80–0.99',label:'Fair — sedikit di bawah pasar'},
+      {cls:'s-low',range:'< 0.80',label:'Weak — butuh peningkatan OCC'},
+    ]
+  },
+  ari:{
+    icon:'💰', name:'ARI', full:'Average Rate Index',
+    formula:'ARR Hotel ÷ ARR Rata-rata Pasar',
+    formula2:'= ARR Hotel
+  ÷ (Σ ARR×RoomsSold Semua) / (Σ RoomsSold Semua)',
+    desc:'Mengukur daya saing harga kamar hotel. Apakah harga kita lebih tinggi atau rendah vs kompetitor.',
+    scale:[
+      {cls:'s-exc',range:'≥ 1.20',label:'Premium — harga jauh di atas pasar'},
+      {cls:'s-gd', range:'1.00–1.19',label:'Competitive — harga di atas rata-rata'},
+      {cls:'s-ok', range:'0.80–0.99',label:'Discount — harga sedikit di bawah'},
+      {cls:'s-low',range:'< 0.80',label:'Low Rate — potensi kenaikan harga'},
+    ]
+  },
+  rgi:{
+    icon:'📈', name:'RGI', full:'Revenue Generation Index',
+    formula:'RevPAR Hotel ÷ RevPAR Rata-rata Pasar',
+    formula2:'= (ARR × OCC%) Hotel
+  ÷ (ARR × OCC%) Market Avg
+  ≡ MPI × ARI',
+    desc:'Indikator utama kinerja revenue. Gabungan OCC dan ARR vs pasar. Nilai >1.00 berarti hotel menghasilkan revenue per kamar lebih baik dari kompetitor.',
+    scale:[
+      {cls:'s-exc',range:'≥ 1.20',label:'Excellent — revenue jauh melampaui pasar'},
+      {cls:'s-gd', range:'1.00–1.19',label:'Strong — revenue di atas rata-rata'},
+      {cls:'s-ok', range:'0.80–0.99',label:'Average — revenue mendekati pasar'},
+      {cls:'s-low',range:'< 0.80',label:'Below market — perlu strategi revenue'},
+    ]
+  }
+};
+
+function buildPopupHtml(key){
+  const d=IDX_INFO[key];
+  return `<div class="tp-head"><div class="tp-icon">${d.icon}</div>
+    <div><div class="tp-name">${d.name}</div></div></div>
+  <div class="tp-full">${d.full}</div>
+  <div class="tp-formula">
+    <div class="tp-formula-label">Formula</div>
+    <div class="tp-formula-code">${d.formula}</div>
+    <div class="tp-formula-code" style="font-size:10px;color:var(--muted);margin-top:4px;white-space:pre">${d.formula2}</div>
+  </div>
+  <div class="tp-formula-label" style="margin-bottom:6px;">${d.desc}</div>
+  <div class="tp-divider"></div>
+  <div class="tp-formula-label" style="margin-bottom:5px;">Skala Interpretasi</div>
+  <div class="tp-scale">
+    ${d.scale.map(s=>`<div class="tp-scale-row">
+      <span class="tp-scale-badge ${s.cls}">${s.range}</span>
+      <span style="color:var(--muted)">${s.label}</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+// Global popup state
+let _activePopup=null;
+function showTip(el,key){
+  const pop=el.querySelector('.tip-popup');if(!pop)return;
+  if(_activePopup&&_activePopup!==pop){_activePopup.classList.remove('show');}
+  pop.classList.toggle('show');
+  _activePopup=pop.classList.contains('show')?pop:null;
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.idx-tip')){
+    document.querySelectorAll('.tip-popup.show').forEach(p=>p.classList.remove('show'));
+    _activePopup=null;
+  }
+});
+
+// ══════════════════════════════════════════════════════
+// FORMAT HELPERS
+// ══════════════════════════════════════════════════════
+const fmt  = n=>new Intl.NumberFormat('id-ID').format(Math.round(n));
+const fmtB = n=>n>=1e9?'Rp '+(n/1e9).toFixed(2)+'B':'Rp '+(n/1e6).toFixed(1)+'M';
+const pct  = n=>(n*100).toFixed(1)+'%';
+const fi   = n=>n.toFixed(2);
+const sh   = n=>HMAP[n.trim()]||n.trim().split(' ')[0];
+const ic   = v=>v>=1.2?'var(--green)':v>=0.9?'var(--text)':v>=0.7?'var(--orange)':'var(--red)';
+
+// Safe number: handle decimal, % string, raw number
+const sn = v=>{
+  if(v===null||v===undefined||v==='') return 0;
+  if(typeof v==='string'){
+    const t=v.trim();
+    if(t.endsWith('%')) return parseFloat(t.replace('%',''))/100||0;
+    return parseFloat(t.replace(/[^0-9.\-]/g,''))||0;
+  }
+  return typeof v==='number'?v:parseFloat(v)||0;
+};
+
+// ══════════════════════════════════════════════════════
+// UPLOAD / FILE
+// ══════════════════════════════════════════════════════
+const db=document.getElementById('drop-box');
+const fi2=document.getElementById('file-input');
+db.addEventListener('dragover',e=>{e.preventDefault();db.classList.add('over');});
+db.addEventListener('dragleave',()=>db.classList.remove('over'));
+db.addEventListener('drop',e=>{e.preventDefault();db.classList.remove('over');const f=e.dataTransfer.files[0];if(f)readFile(f);});
+fi2.addEventListener('change',e=>{if(e.target.files[0])readFile(e.target.files[0]);});
+
+function readFile(f){
+  lastFile=f;lastUrl=null;
+  setStat('load','⏳ Memproses file Excel...');
+  const r=new FileReader();
+  r.onload=e=>{try{parseXL(e.target.result,f.name);}catch(err){setStat('err','Gagal parse: '+err.message);}};
+  r.onerror=()=>setStat('err','Gagal membaca file.');
+  r.readAsArrayBuffer(f);
+}
+
+function loadUrl(){
+  let url=document.getElementById('url-inp').value.trim();
+  if(!url)return;
+  lastUrl=url;lastFile=null;
+  const gd=url.match(/\/d\/([^/]+)\//);
+  if(gd) url='https://drive.google.com/uc?export=download&id='+gd[1];
+  setStat('load','⏳ Memuat dari URL...');
+  fetch(url)
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer();})
+    .then(buf=>parseXL(buf,lastUrl.split('/').pop()||'comparison.xlsx'))
+    .catch(e=>setStat('err','Gagal load: '+e.message));
+}
+
+function doRefresh(){
+  if(lastFile)readFile(lastFile);
+  else if(lastUrl){document.getElementById('url-inp').value=lastUrl;loadUrl();}
+}
+
+function changeFile(){
+  D=null;Object.values(charts).forEach(c=>c.destroy());charts={};
+  ['site-header','filter-bar','main'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('upload-screen').style.display='flex';
+  setStat('err','');setStat('load','');
+}
+
+function setStat(t,msg){
+  const e=document.getElementById('up-err'),l=document.getElementById('up-load');
+  if(t==='err'){e.textContent=msg?'⚠ '+msg:'';e.style.display=msg?'block':'none';l.style.display='none';}
+  else{l.textContent=msg;l.style.display=msg?'block':'none';e.style.display='none';}
+}
+
+// ══════════════════════════════════════════════════════
+// EXCEL PARSER — 3 SECTIONS PER SHEET
+// TODAY : rows 13-21 hotels, row 22 total (0-based)
+// MTD   : rows 29-37 hotels, row 38 total
+// YTD   : rows 45-53 hotels, row 54 total
+// YEAR  : col BC row 9 (index 9, col 54) = integer year
+// ══════════════════════════════════════════════════════
+function parseXL(buf,fname){
+  const wb=XLSX.read(buf,{type:'array',cellDates:true});
+  const res={};let any=false;
+  let detectedYear=null;
+
+  SH.forEach(sn2=>{
+    if(!wb.SheetNames.includes(sn2))return;
+    const ws=wb.Sheets[sn2];
+    const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+    if(!raw||raw.length<30)return;
+    const get=(ri,ci)=>raw[ri]&&raw[ri][ci]!=null?raw[ri][ci]:null;
+
+    // ── YEAR detection: col BC (54) row 10 (index 9)
+    const yr = sn(get(9,54))||sn(get(41,48))||new Date().getFullYear();
+    if(!detectedYear && yr>2000 && yr<2100) detectedYear=yr;
+
+    // ── parse section helper
+    const parseSection=(hotelStart,hotelEnd,totalRow)=>{
+      const hotels=[];
+      for(let ri=hotelStart;ri<=hotelEnd;ri++){
+        const name=(get(ri,48)||'').toString().trim();
+        if(!name||name==='TOTAL') continue;
+        hotels.push({
+          name,
+          rms_av: sn(get(ri,49)),
+          rms_sld:sn(get(ri,50)),
+          occ:    sn(get(ri,51)),
+          arr:    sn(get(ri,52)),
+          rev:    sn(get(ri,53)),
+          mpi:    sn(get(ri,54)),
+          ari:    sn(get(ri,55)),
+          rgi:    sn(get(ri,56)),
+        });
+      }
+      const tr=raw[totalRow]||[];
+      const total={
+        rms_av: sn(tr[49]),
+        rms_sld:sn(tr[50]),
+        occ:    sn(tr[51]),
+        rev:    sn(tr[53]),
+      };
+      return {hotels,total};
+    };
+
+    // TODAY: hotel rows index 13-21, total index 22
+    // MTD  : hotel rows index 29-37, total index 38
+    // YTD  : hotel rows index 45-53, total index 54
+    const today = parseSection(13,21,22);
+    const mtd   = parseSection(29,37,38);
+    const ytd   = parseSection(45,53,54);
+
+    // Daily data (for context)
+    const daily=[];
+    for(let ri=8;ri<raw.length;ri++){
+      const d=parseInt(get(ri,0));if(isNaN(d)||d<1||d>31)break;
+      daily.push(d);
+    }
+    const daysInMonth=daily.length;
+
+    if(today.hotels.length||mtd.hotels.length||ytd.hotels.length){
+      res[sn2]={today,mtd,ytd,daysInMonth,year:yr};
+      any=true;
+    }
+  });
+
+  if(!any){setStat('err','Tidak ada data. Pastikan file Hotel Comparison.');return;}
+  D=res;
+  dataYear=detectedYear||new Date().getFullYear();
+  setStat('','');
+
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('site-header').style.display='block';
+  document.getElementById('filter-bar').style.display='block';
+  document.getElementById('main').style.display='block';
+
+  document.getElementById('hfile').textContent='📄 '+fname;
+  document.getElementById('header-title').textContent='Lotus Garden — Competitive Analysis '+dataYear;
+
+  buildTabs();
+  const first=SH.find(m=>D[m]?.mtd?.hotels?.length>0)||SH[0];
+  selectM(first,true);
+  setTimer();
+}
+
+// ══════════════════════════════════════════════════════
+// TABS & VIEW SELECTOR
+// ══════════════════════════════════════════════════════
+function buildTabs(){
+  const w=document.getElementById('m-tabs');w.innerHTML='';
+  SH.forEach((m,i)=>{
+    const hd=D[m]?.mtd?.hotels?.length>0||D[m]?.today?.hotels?.length>0;
+    const b=document.createElement('button');
+    b.className='m-tab'+(hd?'':' nodata')+(m===curM?' active':'');
+    b.textContent=MN[i].slice(0,3).toUpperCase();
+    b.onclick=()=>{if(hd)selectM(m);};
+    w.appendChild(b);
+  });
+}
+
+function selectM(m,init=false){
+  curM=m;
+  document.querySelectorAll('.m-tab').forEach((b,i)=>b.classList.toggle('active',SH[i]===m));
+  render();
+}
+
+function selectView(v){
+  curV=v;
+  document.querySelectorAll('.v-tab').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  render();
+}
+
+function setTimer(){
+  if(timer){clearInterval(timer);timer=null;}
+  const ms=parseInt(document.getElementById('ref-sel').value);
+  if(ms>0){timer=setInterval(()=>{document.getElementById('ref-status').textContent='⟳';doRefresh();setTimeout(()=>document.getElementById('ref-status').textContent='',2000);},ms);}
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════
+function render(){
+  Object.values(charts).forEach(c=>c.destroy());charts={};
+  const mc=document.getElementById('main');
+  const d=D[curM];
+  if(!d){mc.innerHTML='<div style="text-align:center;padding:60px;color:var(--muted)">Data tidak tersedia.</div>';return;}
+
+  // Pick data section based on view
+  const section = curV==='today'?d.today : curV==='mtd'?d.mtd : d.ytd;
+  if(!section||!section.hotels||!section.hotels.length){
+    mc.innerHTML='<div style="text-align:center;padding:60px;color:var(--muted)">Data '+curV.toUpperCase()+' tidak tersedia untuk bulan ini.</div>';
+    return;
+  }
+
+  const ms   = section.hotels;
+  const lgh  = ms[0];
+  const mi   = SH.indexOf(curM);
+  const yr   = d.year||dataYear;
+  const mon  = MN[mi];
+
+  // View labels
+  const viewLabels={
+    today:{icon:'📅',title:'Today — Data Harian Terakhir',sub:`${mon} ${yr} · Snapshot hari terakhir di file`,cls:'today'},
+    mtd:  {icon:'📊',title:`MTD — Month to Date`,sub:`Akumulasi ${mon} ${yr} · ${d.daysInMonth} hari`,cls:'mtd'},
+    ytd:  {icon:'📈',title:`YTD — Year to Date`,sub:`Akumulasi Jan–${mon} ${yr}`,cls:'ytd'},
+  };
+  const vl=viewLabels[curV];
+
+  // Market stats
+  const totSld=ms.reduce((s,h)=>s+h.rms_sld,0);
+  const totAv =ms.reduce((s,h)=>s+h.rms_av,0);
+  const totRev=ms.reduce((s,h)=>s+h.rev,0);
+  const avgOcc=totAv>0?totSld/totAv:0;
+  const avgARR=totSld>0?ms.reduce((s,h)=>s+h.arr*h.rms_sld,0)/totSld:0;
+
+  const so=[...ms].sort((a,b)=>b.occ-a.occ);
+  const sa=[...ms].sort((a,b)=>b.arr-a.arr);
+  const sr=[...ms].sort((a,b)=>b.rev-a.rev);
+  const ro=so.findIndex(h=>h.name.trim()===lgh.name.trim())+1;
+  const ra=sa.findIndex(h=>h.name.trim()===lgh.name.trim())+1;
+  const rr=sr.findIndex(h=>h.name.trim()===lgh.name.trim())+1;
+
+  mc.innerHTML=`
+<!-- VIEW BANNER -->
+<div class="view-banner ${vl.cls}">
+  <div class="vb-icon">${vl.icon}</div>
+  <div>
+    <div class="vb-title">${vl.title}</div>
+    <div class="vb-sub">${vl.sub}</div>
+  </div>
+</div>
+
+<!-- KPI -->
+<div class="stitle">✦ Performance Overview</div>
+<div class="kpi-grid">
+  <div class="kc" style="--ac:var(--gold)">
+    <div class="kl">Occupancy LGH</div><div class="kv">${pct(lgh.occ)}</div>
+    <div class="ks">Rank #${ro} dari ${ms.length} hotel</div>
+    <div class="idx-tip" onclick="showTip(this,'mpi')" style="display:inline-block;">
+    <div class="kb ${lgh.mpi>=1?'up':'dn'} idx-tip-label" style="cursor:help;">${lgh.mpi>=1?'▲':'▼'} MPI ${fi(lgh.mpi)} <span class="tip-dot">ⓘ</span></div>
+    <div class="tip-popup" style="bottom:auto;top:calc(100% + 8px);">${buildPopupHtml('mpi')}</div>
+  </div>
+  </div>
+  <div class="kc" style="--ac:var(--blue)">
+    <div class="kl">Avg Room Rate</div><div class="kv">Rp ${fmt(lgh.arr/1000)}K</div>
+    <div class="ks">Rank #${ra} dari ${ms.length} hotel</div>
+    <div class="idx-tip" onclick="showTip(this,'ari')" style="display:inline-block;">
+    <div class="kb ${lgh.ari>=1?'up':'dn'} idx-tip-label" style="cursor:help;">${lgh.ari>=1?'▲':'▼'} ARI ${fi(lgh.ari)} <span class="tip-dot">ⓘ</span></div>
+    <div class="tip-popup" style="bottom:auto;top:calc(100% + 8px);">${buildPopupHtml('ari')}</div>
+  </div>
+  </div>
+  <div class="kc" style="--ac:var(--green)">
+    <div class="kl">Revenue LGH</div><div class="kv">${fmtB(lgh.rev)}</div>
+    <div class="ks">Rank #${rr} dari ${ms.length} hotel</div>
+    <div class="idx-tip" onclick="showTip(this,'rgi')" style="display:inline-block;">
+    <div class="kb ${lgh.rgi>=1?'up':'dn'} idx-tip-label" style="cursor:help;">${lgh.rgi>=1?'▲':'▼'} RGI ${fi(lgh.rgi)} <span class="tip-dot">ⓘ</span></div>
+    <div class="tip-popup" style="bottom:auto;top:calc(100% + 8px);">${buildPopupHtml('rgi')}</div>
+  </div>
+  </div>
+  <div class="kc" style="--ac:var(--purple)">
+    <div class="kl">Rooms Sold LGH</div><div class="kv">${fmt(lgh.rms_sld)}</div>
+    <div class="ks">dari ${fmt(lgh.rms_av)} tersedia</div>
+    <div class="kb nu">Market ${pct(totSld>0?lgh.rms_sld/totSld:0)}</div>
+  </div>
+  <div class="kc" style="--ac:var(--orange)">
+    <div class="kl">Market Avg OCC</div><div class="kv">${pct(avgOcc)}</div>
+    <div class="ks">${ms.length} hotel · ${vl.title.split('—')[0].trim()}</div>
+    <div class="kb ${lgh.occ>avgOcc?'up':'dn'}">${lgh.occ>avgOcc?'▲ Above':'▼ Below'} Market</div>
+  </div>
+  <div class="kc" style="--ac:var(--cyan)">
+    <div class="kl">Market Avg ARR</div><div class="kv">Rp ${fmt(avgARR/1000)}K</div>
+    <div class="ks">Weighted average</div>
+    <div class="kb ${lgh.arr>avgARR?'up':'dn'}">${lgh.arr>avgARR?'▲ Above':'▼ Below'} Market</div>
+  </div>
+  <div class="kc" style="--ac:var(--red)">
+    <div class="kl">Total Market Revenue</div><div class="kv">${fmtB(totRev)}</div>
+    <div class="ks">${ms.length} hotel kompetitor</div>
+    <div class="kb nu">LGH Share ${pct(totRev>0?lgh.rev/totRev:0)}</div>
+  </div>
+  <div class="kc" style="--ac:#f97316">
+    <div class="kl">RevPAR LGH</div><div class="kv">Rp ${fmt(lgh.arr*lgh.occ/1000)}K</div>
+    <div class="ks">vs ${fmt(avgARR*avgOcc/1000)}K market avg</div>
+    <div class="kb ${lgh.rgi>=1?'up':'dn'}">${lgh.rgi>=1?'▲':'▼'} vs Market</div>
+  </div>
+</div>
+
+<!-- CHARTS -->
+<div class="crow">
+  <div class="cc"><div class="ct">Occupancy Rate (%)</div><div class="cw"><canvas id="c-occ"></canvas></div></div>
+  <div class="cc"><div class="ct">Average Room Rate (ARR)</div><div class="cw"><canvas id="c-arr"></canvas></div></div>
+</div>
+<div class="crow">
+  <div class="cc"><div class="ct">Revenue Perbandingan</div><div class="cw"><canvas id="c-rev"></canvas></div></div>
+  <div class="cc"><div class="ct">Market Share — Rooms Sold</div><div class="cw"><canvas id="c-ms"></canvas></div></div>
+</div>
+
+<!-- INDEX RADAR -->
+<div class="stitle">✦ Competitive Index (MPI · ARI · RGI)</div>
+<div class="cc" style="margin-bottom:24px;">
+  <div class="ct">Index vs Market Average — nilai &gt;1.00 berarti di atas rata-rata pasar</div>
+  <div class="cw" style="height:280px;"><canvas id="c-idx"></canvas></div>
+</div>
+
+<!-- TABLE -->
+<div class="stitle">✦ Competitive Set Ranking</div>
+<div class="tw"><table class="tb" id="c-tbl"></table></div>
+
+<!-- YTD TREND -->
+<div id="ytd-charts"></div>
+`;
+
+  buildCharts(ms,_darkMode);
+  buildTable(ms);
+  buildYTD(yr);
+}
+
+// ══════════════════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════════════════
+function buildCharts(ms,dark=true){
+  const labels=ms.map(h=>sh(h.name));
+  const clr=ms.map((_,i)=>HC[i]);
+
+  const barV=(id,vals,cb,yFmt)=>{
+    const ctx=document.getElementById(id)?.getContext('2d');if(!ctx)return;
+    charts[id]=new Chart(ctx,{type:'bar',
+      data:{labels,datasets:[{data:vals,backgroundColor:clr,borderRadius:5,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:d=>cb(d.raw)}}},
+        scales:{x:{ticks:{color:dark?'#6a6678':'#4a4640',font:{size:10}},grid:{display:false}},
+                y:{ticks:{color:dark?'#6a6678':'#4a4640',font:{size:10},callback:yFmt},grid:{color:dark?'rgba(255,255,255,.04)':'rgba(0,0,0,.06)'}}}}});
+  };
+
+  barV('c-occ',ms.map(h=>+(h.occ*100).toFixed(1)),v=>`OCC: ${v}%`,v=>v+'%');
+  barV('c-arr',ms.map(h=>Math.round(h.arr/1000)),v=>`ARR: Rp ${v}K`,v=>'Rp '+v+'K');
+
+  // Revenue horizontal
+  const ctx2=document.getElementById('c-rev')?.getContext('2d');
+  if(ctx2)charts['c-rev']=new Chart(ctx2,{type:'bar',
+    data:{labels,datasets:[{data:ms.map(h=>+(h.rev/1e9).toFixed(3)),backgroundColor:clr,borderRadius:5,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:d=>`Rev: Rp ${d.raw}B`}}},
+      scales:{x:{ticks:{color:dark?'#6a6678':'#4a4640',font:{size:10},callback:v=>'Rp '+v+'B'},grid:{color:dark?'rgba(255,255,255,.04)':'rgba(0,0,0,.06)'}},
+              y:{ticks:{color:dark?'#6a6678':'#4a4640',font:{size:10}},grid:{display:false}}}}});
+
+  // Market share doughnut
+  const ctx3=document.getElementById('c-ms')?.getContext('2d');
+  if(ctx3)charts['c-ms']=new Chart(ctx3,{type:'doughnut',
+    data:{labels,datasets:[{data:ms.map(h=>h.rms_sld),backgroundColor:HC,borderWidth:2,borderColor:dark?'#13131c':'#f8f7f4',hoverOffset:5}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{legend:{position:'right',labels:{color:dark?'#9a9090':'#3a3630',font:{size:10},boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:d=>`${d.label}: ${fmt(d.raw)} rm`}}}}});
+
+  // Radar index
+  const ctx4=document.getElementById('c-idx')?.getContext('2d');
+  if(ctx4){
+    const mx=Math.max(...ms.flatMap(h=>[h.mpi||0,h.ari||0,h.rgi||0]),1.5)+.15;
+    charts['c-idx']=new Chart(ctx4,{type:'radar',
+      data:{labels:['MPI (Market Penetration)','ARI (Avg Rate Index)','RGI (Revenue Generation)'],
+        datasets:ms.map((h,i)=>({label:sh(h.name),data:[h.mpi,h.ari,h.rgi],borderColor:HC[i],backgroundColor:HC[i]+'18',borderWidth:i===0?2.5:1.5,pointRadius:i===0?5:3,tension:.3,fill:false}))},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:dark?'#9a9090':'#3a3630',font:{size:9},boxWidth:10,padding:8}}},
+        scales:{r:{ticks:{color:'#6a6678',font:{size:9},backdropColor:'transparent',color:dark?'#6a6678':'#4a4640'},
+          grid:{color:dark?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)'},angleLines:{color:dark?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)'},
+          pointLabels:{color:dark?'#9a9090':'#3a3630',font:{size:10}},min:0,max:mx}}}});}
+}
+
+// ══════════════════════════════════════════════════════
+// TABLE with POPUP TOOLTIPS
+// ══════════════════════════════════════════════════════
+function tipHeader(key){
+  const d=IDX_INFO[key];
+  return `<th class="idx-tip" onclick="showTip(this,'${key}')" style="cursor:help;white-space:nowrap;">
+    <div class="idx-tip-label">${d.name} <span class="tip-dot">ⓘ</span></div>
+    <div class="tip-popup">${buildPopupHtml(key)}</div>
+  </th>`;
+}
+
+function tipCell(val,key){
+  const color=ic(val);
+  return `<td class="idx-tip" onclick="showTip(this,'${key}')" style="cursor:help;">
+    <div class="idx-tip-label" style="color:${color};font-family:'DM Mono',monospace;font-weight:700;">${fi(val)}</div>
+    <div class="tip-popup">${buildPopupHtml(key)}</div>
+  </td>`;
+}
+
+function buildTable(ms){
+  const sorted=[...ms].sort((a,b)=>b.occ-a.occ);
+  const rooms=[50,58,70,106,59,50,107,30,168];
+  document.getElementById('c-tbl').innerHTML=
+    `<thead><tr>
+      <th>Rank</th><th>Hotel</th><th>Kamar</th>
+      <th>OCC%</th><th>Rm Sold</th><th>ARR</th><th>Revenue</th><th>RevPAR</th>
+      ${tipHeader('mpi')}${tipHeader('ari')}${tipHeader('rgi')}
+    </tr></thead><tbody>`+
+    sorted.map((h,rank)=>{
+      const isL=h.name.trim().toUpperCase().includes('LOTUS');
+      const n=rank+1,rc=n===1?'r1':n===2?'r2':n===3?'r3':'rn';
+      const ci=ms.indexOf(h);
+      return `<tr class="${isL?'lrow':''}">
+        <td><span class="rb ${rc}">${n}</span></td>
+        <td><span class="hd" style="background:${HC[ci]}"></span>${isL?'<strong>✦ </strong>':''}${h.name.trim()}</td>
+        <td style="font-family:'DM Mono',monospace;color:var(--muted)">${rooms[ci]||'—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-weight:600">${pct(h.occ)}</td>
+        <td style="font-family:'DM Mono',monospace">${fmt(h.rms_sld)}</td>
+        <td style="font-family:'DM Mono',monospace">Rp ${fmt(h.arr/1000)}K</td>
+        <td style="font-family:'DM Mono',monospace">${fmtB(h.rev)}</td>
+        <td style="font-family:'DM Mono',monospace">Rp ${fmt(h.arr*h.occ/1000)}K</td>
+        ${tipCell(h.mpi,'mpi')}${tipCell(h.ari,'ari')}${tipCell(h.rgi,'rgi')}
+      </tr>`;
+    }).join('')+'</tbody>';
+}
+
+// ══════════════════════════════════════════════════════
+// YTD TREND CHARTS (selalu dari MTD per bulan)
+// ══════════════════════════════════════════════════════
+function buildYTD(yr){
+  const av=SH.filter(m=>D[m]?.mtd?.hotels?.length>0);
+  if(av.length<2){document.getElementById('ytd-charts').innerHTML='';return;}
+
+  const lghMTD = m=>D[m].mtd.hotels[0];
+  const mktOcc = m=>{const hs=D[m].mtd.hotels;const t=hs.reduce((s,h)=>s+h.rms_sld,0),a=hs.reduce((s,h)=>s+h.rms_av,0);return a>0?t/a:0;};
+
+  const lo  = av.map(m=>+(lghMTD(m).occ*100).toFixed(1));
+  const mo  = av.map(m=>+(mktOcc(m)*100).toFixed(1));
+  const la  = av.map(m=>Math.round(lghMTD(m).arr/1000));
+  const lm  = av.map(m=>+lghMTD(m).mpi.toFixed(2));
+  const lari= av.map(m=>+lghMTD(m).ari.toFixed(2));
+  const lr  = av.map(m=>+lghMTD(m).rgi.toFixed(2));
+  const ml  = av.map(m=>MN[SH.indexOf(m)].slice(0,3));
+
+  document.getElementById('ytd-charts').innerHTML=`
+<div class="stitle">✦ Year-to-Date Trend — MTD per Bulan (${yr})</div>
+<div class="crow">
+  <div class="cc"><div class="ct">OCC Trend: LGH vs Market Average (%)</div><div class="cw"><canvas id="t-occ"></canvas></div></div>
+  <div class="cc"><div class="ct">ARR Trend — Lotus Garden (Rp 000)</div><div class="cw"><canvas id="t-arr"></canvas></div></div>
+</div>
+<div class="crow" style="margin-bottom:48px;">
+  <div class="cc"><div class="ct">Revenue Generation Index (RGI) — &gt;1.00 Above Market</div><div class="cw"><canvas id="t-rgi"></canvas></div></div>
+  <div class="cc"><div class="ct">MPI · ARI · RGI Trend</div><div class="cw"><canvas id="t-idx"></canvas></div></div>
+</div>`;
+
+  const line=(id,ds)=>{const ctx=document.getElementById(id)?.getContext('2d');if(!ctx)return;
+    charts[id]=new Chart(ctx,{type:'line',data:{labels:ml,datasets:ds},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:dark?'#9a9090':'#3a3630',font:{size:10},boxWidth:12}}},
+        scales:{x:{ticks:{color:dark?'#6a6678':'#4a4640',font:{size:10}},grid:{display:false}},
+                y:{ticks:{color:dark?'#6a6678':'#4a4640',font:{size:10}},grid:{color:dark?'rgba(255,255,255,.04)':'rgba(0,0,0,.06)'}}}}});};
+
+  line('t-occ',[
+    {label:'LGH OCC%',data:lo,borderColor:'#c9a84c',backgroundColor:'rgba(201,168,76,.08)',borderWidth:2.5,pointRadius:5,tension:.3,fill:true},
+    {label:'Market Avg',data:mo,borderColor:'#5b8ff9',borderDash:[5,4],borderWidth:1.5,pointRadius:3,tension:.3},
+  ]);
+  line('t-arr',[{label:'ARR Rp 000',data:la,borderColor:'#2dba72',backgroundColor:'rgba(45,186,114,.08)',borderWidth:2.5,pointRadius:5,tension:.3,fill:true}]);
+
+  const ctx3=document.getElementById('t-rgi')?.getContext('2d');
+  if(ctx3)charts['t-rgi']=new Chart(ctx3,{type:'bar',
+    data:{labels:ml,datasets:[{data:lr,backgroundColor:lr.map(v=>v>=1?'rgba(45,186,114,.7)':'rgba(224,85,85,.6)'),borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:dark?'#6a6678':'#4a4640',font:{size:10}},grid:{display:false}},
+              y:{ticks:{color:dark?'#6a6678':'#4a4640',font:{size:10}},grid:{color:dark?'rgba(255,255,255,.04)':'rgba(0,0,0,.06)'},min:0}}}});
+
+  line('t-idx',[
+    {label:'MPI',data:lm, borderColor:'#c9a84c',borderWidth:2,pointRadius:4,tension:.3},
+    {label:'ARI',data:lari,borderColor:'#5b8ff9',borderWidth:2,pointRadius:4,tension:.3},
+    {label:'RGI',data:lr, borderColor:'#2dba72',borderWidth:2,pointRadius:4,tension:.3},
+    {label:'Baseline 1.0',data:ml.map(()=>1),borderColor:'rgba(255,255,255,.15)',borderDash:[4,4],borderWidth:1,pointRadius:0},
+  ]);
+}
+</script>
+</body>
+</html>
