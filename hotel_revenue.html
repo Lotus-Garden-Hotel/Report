@@ -6,7 +6,7 @@
 <title>Hotel Revenue Report 2026 — Lotus Garden by WH</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --black:#07070a;--dark:#0d0d12;--surface:#121218;--card:#181820;
@@ -1069,7 +1069,7 @@ function processFile(file){
   rdr.readAsArrayBuffer(file);
 }
 
-async async function loadFromURL(){
+async function loadFromURL(){
   const url=document.getElementById('url-inp').value.trim();
   if(!url){setErr('Masukkan URL terlebih dahulu.');return;}
   setErr('');loadBar(true);
@@ -3492,16 +3492,25 @@ function _idbShowBanner(name,ts){
 // ── Clear cache ──
 function confirmChangeData(){
   // Modal konfirmasi — lebih jelas untuk mobile
-  if(confirm('Ganti file Excel / data?
+  idbClearAndReset();
+}
 
-Pilih OK untuk kembali ke halaman upload.
-(Cache akan dihapus)')){
-    idbClearCache();
-  }
+async function idbClearAndReset(){
+  // Single confirm, clear IDB, go back to upload
+  if(!confirm('Ganti file Excel / hapus cache?\nFile harus diupload ulang.')) return;
+  (async()=>{
+    try{
+      await idbDelete('excel');
+      await idbDelete('prefs');
+      const el=document.getElementById('idb-banner');
+      if(el) el.remove();
+    }catch(e){ console.warn('IDB clear:',e); }
+    reupload();
+  })();
 }
 
 async function idbClearCache(){
-  if(!confirm('Hapus data cache Excel? File harus diupload ulang.')) return;
+  // Called from banner "Hapus cache" button — no extra confirm needed
   try{
     await idbDelete('excel');
     await idbDelete('prefs');
