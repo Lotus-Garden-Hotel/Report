@@ -903,10 +903,12 @@ body.light-mode .est-method-info .formula{background:rgba(0,0,0,.05);}
     <div style="font-size:9px;color:var(--dim);line-height:1.7;margin-top:4px;padding:8px 10px;
       background:rgba(255,255,255,.03);border-radius:8px;border:1px solid var(--border);">
       <strong style="color:var(--muted);">📌 Format URL GDrive yang didukung:</strong><br>
-      <span style="color:var(--teal);">✓</span> <code style="font-size:8px;">https://drive.google.com/file/d/<b>FILE_ID</b>/view</code><br>
       <span style="color:var(--teal);">✓</span> <code style="font-size:8px;">https://docs.google.com/spreadsheets/d/<b>SHEET_ID</b>/edit</code><br>
-      <span style="color:var(--teal);">✓</span> <code style="font-size:8px;">...?rtpof=true&sd=true</code> ← <em>Excel upload, otomatis terdeteksi</em><br>
-      <span style="color:var(--red);">✗</span> File <strong>WAJIB di-share</strong>: <em>Anyone with the link → Viewer</em>
+      <span style="color:var(--teal);">✓</span> <code style="font-size:8px;">https://docs.google.com/spreadsheets/d/<b>SHEET_ID</b>/edit?rtpof=true&amp;sd=true</code><br>
+      <span style="color:var(--teal);">✓</span> <code style="font-size:8px;">https://drive.google.com/file/d/<b>FILE_ID</b>/view</code><br>
+      <span style="color:var(--teal);">✓</span> <em style="font-size:8px;">Paste URL apapun dari Google Sheets → otomatis diproses</em><br>
+      <span style="color:var(--red);">✗</span> File <strong>WAJIB di-share</strong>: <em>Anyone with the link → Viewer</em><br>
+      <span style="color:#f59e42;">💡</span> <em style="font-size:8px;">Jika tetap gagal: upload file .xlsx langsung lebih andal</em>
     </div>
     <div class="auto-row">
       <input type="checkbox" id="chk-auto">
@@ -1070,8 +1072,31 @@ function processFile(file){
 }
 
 async function loadFromURL(){
-  const url=document.getElementById('url-inp').value.trim();
+  let url=document.getElementById('url-inp').value.trim();
   if(!url){setErr('Masukkan URL terlebih dahulu.');return;}
+
+  // Auto-normalize Google Sheets URL → langsung export xlsx
+  const shM = url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if(shM){
+    const shId = shM[1];
+    const exportUrl = `https://docs.google.com/spreadsheets/d/${shId}/export?format=xlsx`;
+    console.log('[URL] Detected Google Sheets, trying export URL:', exportUrl);
+    // Coba langsung fetch export — jika berhasil, tidak perlu fallback
+    setErr('⏳ Mendeteksi Google Sheets, mengambil sebagai xlsx...');loadBar(true);
+    try{
+      const buf = await fetchOneMethod(exportUrl);
+      parseExcel(buf);
+      _srcType='url';_srcURL=url;
+      try{localStorage.setItem('hotel_rev_url',url);}catch(_){}
+      loadBar(false);showApp('Google Sheets');setupAutoRefresh();
+      setErr('');
+      return; // sukses
+    }catch(ex){
+      console.warn('[URL] Direct export failed, trying fallback methods:', ex.message);
+      // lanjut ke fetchWithFallback di bawah
+    }
+  }
+
   setErr('');loadBar(true);
   try{
     const buf = await fetchWithFallback(url);
@@ -1081,7 +1106,18 @@ async function loadFromURL(){
     loadBar(false);showApp(url.split('/').pop()||'Network');setupAutoRefresh();
   }catch(ex){
     loadBar(false);
-    setErr('⚠ '+ex.message);
+    // Error message lebih informatif untuk Google Drive
+    let errMsg = ex.message;
+    if(url.includes('docs.google.com') || url.includes('drive.google.com')){
+      errMsg = '⚠ Gagal load dari Google Drive/Sheets.\n\n'+
+        'Pastikan:\n'+
+        '1. File di-share: "Anyone with the link" → Viewer\n'+
+        '2. Coba link berbeda: buka file → Share → Copy link\n'+
+        '3. Atau upload file .xlsx langsung (drag & drop)';
+    } else {
+      errMsg = '⚠ '+errMsg;
+    }
+    setErr(errMsg);
   }
 }
 
@@ -1177,50 +1213,56 @@ function checkNotHtml(buf){
 function buildFetchMethods(url){
   const methods=[];
 
-  // ── Ekstrak ID dari semua format URL Google ──────────────────
-  // Format: /d/ID/  atau  ?id=ID
+  // ── Ekstrak ID dari URL Google ───────────────────────────────
   const mPath = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
   const idFromPath = mPath ? mPath[1] : '';
   const idFromQuery = (()=>{ try{ return new URL(url).searchParams.get('id')||''; }catch(_){return '';} })();
   const finalId = idFromPath || idFromQuery;
 
   // ── Deteksi tipe URL ─────────────────────────────────────────
-  // rtpof=true ATAU sd=true = file .xlsx yang diupload ke Drive (bukan native Sheets)
-  // Harus pakai uc?export=download, BUKAN /export?format=xlsx
-  const isUploadedXlsx = url.includes('rtpof=true') || url.includes('sd=true');
-  const isGSheet = url.includes('spreadsheets/d/') && !isUploadedXlsx;
-  const isGDriveFile = url.includes('drive.google.com/file/d/');
-  const isGDrive = (url.includes('drive.google.com') || url.includes('docs.google.com'))
-                    && !isGSheet;
+  // RULE: spreadsheets/d/ → SELALU pakai /export?format=xlsx
+  //       rtpof=true/sd=true hanya berarti "file aslinya xlsx" tapi tetap di Sheets
+  const isGSheet = url.includes('spreadsheets/d/') && finalId;
+  const isGDriveFile = url.includes('drive.google.com/file/d/') && finalId;
+  const isGDrivePlain = (url.includes('drive.google.com') && !isGSheet && !isGDriveFile) && finalId;
 
-  if(isGSheet && finalId){
-    // Native Google Sheets — export as xlsx
-    const expUrl=`https://docs.google.com/spreadsheets/d/${finalId}/export?format=xlsx`;
-    methods.push({label:'GSheets direct',   fetchUrl: expUrl});
-    methods.push({label:'GSheets +gid',     fetchUrl: expUrl+'&gid=0'});
-    methods.push({label:'corsproxy.io',     fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(expUrl)});
-    methods.push({label:'allorigins',       fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(expUrl)});
-    methods.push({label:'cors.sh',          fetchUrl:`https://cors.sh/`+expUrl});
+  if(isGSheet){
+    // Google Sheets (native ATAU xlsx yang diupload) → export as xlsx
+    const expUrl = `https://docs.google.com/spreadsheets/d/${finalId}/export?format=xlsx&id=${finalId}`;
+    const expUrl2= `https://docs.google.com/spreadsheets/d/${finalId}/export?format=xlsx`;
+    // Priority: direct export dulu, lalu berbagai proxy
+    methods.push({label:'GSheets export',      fetchUrl: expUrl2});
+    methods.push({label:'GSheets export+id',   fetchUrl: expUrl});
+    methods.push({label:'corsproxy+export',    fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(expUrl2)});
+    methods.push({label:'allorigins+export',   fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(expUrl2)});
+    methods.push({label:'thingproxy+export',   fetchUrl:`https://thingproxy.freeboard.io/fetch/`+expUrl2});
+    methods.push({label:'corsproxy+export2',   fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(expUrl)});
+    methods.push({label:'allorigins+export2',  fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(expUrl)});
+    // Juga coba usercontent jika ada ID
+    const dlContent = `https://drive.usercontent.google.com/download?id=${finalId}&export=download&confirm=t`;
+    methods.push({label:'usercontent',         fetchUrl: dlContent});
+    methods.push({label:'corsproxy+ucontent',  fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(dlContent)});
 
-  } else if((isGDrive || isUploadedXlsx) && finalId){
-    // File Excel yang diupload ke Drive (rtpof=true/sd=true) ATAU /file/d/
-    // Gunakan uc?export=download — satu-satunya cara
-    const dlUC       = `https://drive.google.com/uc?export=download&confirm=t&id=${finalId}`;
-    const dlContent  = `https://drive.usercontent.google.com/download?id=${finalId}&export=download&confirm=t`;
-    const dlUCplain  = `https://drive.google.com/uc?id=${finalId}&export=download`;
-    methods.push({label:'GDrive usercontent',  fetchUrl: dlContent});
+  } else if(isGDriveFile || isGDrivePlain){
+    // File Excel di Google Drive (bukan Sheets)
+    const dlUC      = `https://drive.google.com/uc?export=download&confirm=t&id=${finalId}`;
+    const dlContent = `https://drive.usercontent.google.com/download?id=${finalId}&export=download&confirm=t`;
+    const dlPlain   = `https://drive.google.com/uc?id=${finalId}&export=download`;
+    methods.push({label:'usercontent',         fetchUrl: dlContent});
     methods.push({label:'GDrive uc+confirm',   fetchUrl: dlUC});
-    methods.push({label:'GDrive uc plain',     fetchUrl: dlUCplain});
+    methods.push({label:'GDrive uc plain',     fetchUrl: dlPlain});
     methods.push({label:'corsproxy+content',   fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(dlContent)});
     methods.push({label:'corsproxy+uc',        fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(dlUC)});
     methods.push({label:'allorigins+content',  fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(dlContent)});
     methods.push({label:'allorigins+uc',       fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(dlUC)});
-    methods.push({label:'cors.sh',             fetchUrl:`https://cors.sh/`+dlUC});
+    methods.push({label:'thingproxy',          fetchUrl:`https://thingproxy.freeboard.io/fetch/`+dlUC});
 
   } else if(url){
-    methods.push({label:'Direct', fetchUrl:url});
-    methods.push({label:'Proxy corsproxy', fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(url)});
-    methods.push({label:'Proxy allorigins', fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(url)});
+    // URL umum
+    methods.push({label:'Direct',          fetchUrl: url});
+    methods.push({label:'corsproxy',       fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(url)});
+    methods.push({label:'allorigins',      fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(url)});
+    methods.push({label:'thingproxy',      fetchUrl:`https://thingproxy.freeboard.io/fetch/`+url});
   }
   return methods;
 }
@@ -1273,7 +1315,7 @@ function showApp(name){
   render();
 }
 
-function setErr(m){document.getElementById('up-err').textContent=m;}
+function setErr(m){const el=document.getElementById('up-err');el.innerHTML=m.replace(/\n/g,'<br>');}
 function loadBar(v){document.getElementById('load-bar').classList.toggle('show',v);}
 function toast(msg){
   const t=document.getElementById('toast');
