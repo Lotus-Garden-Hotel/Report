@@ -900,6 +900,13 @@ body.light-mode .est-method-info .formula{background:rgba(0,0,0,.05);}
       <input class="url-inp" id="url-inp" placeholder="https://... (Google Drive / server Excel URL)">
       <button class="btn-load" onclick="loadFromURL()">📡 Load</button>
     </div>
+    <div style="font-size:9px;color:var(--dim);line-height:1.7;margin-top:4px;padding:8px 10px;
+      background:rgba(255,255,255,.03);border-radius:8px;border:1px solid var(--border);">
+      <strong style="color:var(--muted);">📌 Format URL GDrive yang didukung:</strong><br>
+      <span style="color:var(--teal);">✓</span> <code style="font-size:8px;">https://drive.google.com/file/d/<b>FILE_ID</b>/view</code><br>
+      <span style="color:var(--teal);">✓</span> <code style="font-size:8px;">https://docs.google.com/spreadsheets/d/<b>SHEET_ID</b>/edit</code><br>
+      <span style="color:var(--red);">✗</span> File <strong>harus di-share</strong>: <em>Anyone with the link → Viewer</em>
+    </div>
     <div class="auto-row">
       <input type="checkbox" id="chk-auto">
       <label for="chk-auto" style="cursor:pointer;">Auto-refresh setiap</label>
@@ -1061,7 +1068,7 @@ function processFile(file){
   rdr.readAsArrayBuffer(file);
 }
 
-async function loadFromURL(){
+async async function loadFromURL(){
   const url=document.getElementById('url-inp').value.trim();
   if(!url){setErr('Masukkan URL terlebih dahulu.');return;}
   setErr('');loadBar(true);
@@ -1142,11 +1149,27 @@ function fetchOneMethod(fetchUrl){
 }
 
 function checkNotHtml(buf){
-  if(!buf||buf.byteLength<4)throw new Error('Empty response');
-  const b=new Uint8Array(buf.slice(0,10));
-  const s=String.fromCharCode(...b).toLowerCase();
-  if(s.startsWith('<!doctype')||s.startsWith('<html')||s.startsWith('<?xml')){
-    throw new Error('Response adalah HTML bukan Excel');
+  if(!buf||buf.byteLength<4)throw new Error('Respons kosong dari server');
+  const b=new Uint8Array(buf.slice(0,400));
+  const s=String.fromCharCode(...Array.from(b)).toLowerCase();
+  if(s.includes('<!doctype')||s.startsWith('<html')||s.startsWith('<?xml')){
+    // Deteksi khusus Google virus-warning / login page
+    if(s.includes('accounts.google.com')||s.includes('google.com/accounts')){
+      throw new Error('File memerlukan login Google — pastikan sharing: "Anyone with link can view"');
+    }
+    if(s.includes('virus scan warning')||s.includes('confirm download')||s.includes('too large')){
+      throw new Error('Google menampilkan halaman konfirmasi virus scan — coba URL "usercontent" Google');
+    }
+    if(s.includes('google.com')||s.includes('googleapis.com')){
+      throw new Error('Google mengembalikan halaman HTML bukan file Excel — cek setting share file');
+    }
+    throw new Error('Respons adalah HTML bukan file Excel. Pastikan URL langsung ke file .xlsx');
+  }
+  // Cek magic bytes Excel: PK zip (xlsx) atau D0CF (xls)
+  const magic = Array.from(new Uint8Array(buf.slice(0,4))).map(x=>x.toString(16).padStart(2,'0')).join('');
+  if(magic !== '504b0304' && magic !== 'd0cf11e0'){
+    // Bukan Excel yang jelas tapi bukan HTML juga — coba lanjut
+    console.warn('[checkNotHtml] Unexpected magic bytes:', magic);
   }
 }
 
@@ -1157,20 +1180,32 @@ function buildFetchMethods(url){
   const m=url.match(/\/d\/([a-zA-Z0-9_-]+)/);
   const id=m?m[1]:'';
 
-  if(isGSheet && id){
-    // Google Sheets: multiple export format attempts
-    methods.push({label:'GSheets xlsx', fetchUrl:`https://docs.google.com/spreadsheets/d/${id}/export?format=xlsx&id=${id}`});
-    methods.push({label:'GSheets xlsx (alt)', fetchUrl:`https://docs.google.com/spreadsheets/d/${id}/export?format=xlsx`});
-    // Via proxy — works even from file://
-    const expUrl=`https://docs.google.com/spreadsheets/d/${id}/export?format=xlsx`;
-    methods.push({label:'Proxy corsproxy', fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(expUrl)});
-    methods.push({label:'Proxy allorigins', fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(expUrl)});
-    methods.push({label:'Proxy thingproxy', fetchUrl:`https://thingproxy.freeboard.io/fetch/`+expUrl});
-  } else if(isGDrive && id){
-    const dlUrl=`https://drive.google.com/uc?export=download&confirm=1&id=${id}`;
-    methods.push({label:'GDrive direct', fetchUrl:dlUrl});
-    methods.push({label:'Proxy corsproxy', fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(dlUrl)});
-    methods.push({label:'Proxy allorigins', fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(dlUrl)});
+  // Normalise: ambil ID dari berbagai format GDrive URL
+  // - /file/d/ID/view
+  // - /open?id=ID
+  // - /uc?id=ID
+  const idFromQ = (()=>{ try{ return new URL(url).searchParams.get('id')||''; }catch(_){return '';} })();
+  const finalId = id || idFromQ;
+
+  if(isGSheet && finalId){
+    const expUrl=`https://docs.google.com/spreadsheets/d/${finalId}/export?format=xlsx`;
+    methods.push({label:'GSheets direct',  fetchUrl: expUrl});
+    methods.push({label:'GSheets +gid',    fetchUrl: expUrl+'&gid=0'});
+    methods.push({label:'corsproxy.io',    fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(expUrl)});
+    methods.push({label:'allorigins',      fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(expUrl)});
+    methods.push({label:'cors.sh',         fetchUrl:`https://cors.sh/`+expUrl});
+  } else if(isGDrive && finalId){
+    // GDrive file.xlsx — gunakan uc?export=download
+    // confirm=t menghindari virus-warning redirect
+    const dlUrl1=`https://drive.google.com/uc?export=download&confirm=t&id=${finalId}`;
+    const dlUrl2=`https://drive.usercontent.google.com/download?id=${finalId}&export=download&confirm=t`;
+    const dlUrl3=`https://drive.google.com/uc?id=${finalId}&export=download`;
+    methods.push({label:'GDrive usercontent', fetchUrl: dlUrl2});
+    methods.push({label:'GDrive uc confirm',  fetchUrl: dlUrl1});
+    methods.push({label:'GDrive uc plain',    fetchUrl: dlUrl3});
+    methods.push({label:'corsproxy.io',       fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(dlUrl2)});
+    methods.push({label:'allorigins',         fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(dlUrl1)});
+    methods.push({label:'cors.sh',            fetchUrl:`https://cors.sh/`+dlUrl1});
   } else if(url){
     methods.push({label:'Direct', fetchUrl:url});
     methods.push({label:'Proxy corsproxy', fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(url)});
