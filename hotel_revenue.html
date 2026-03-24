@@ -197,6 +197,28 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opa
 .brand span{font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;
   margin-left:10px;letter-spacing:.15em;text-transform:uppercase;}
 .topbar-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+/* Tombol ganti data — selalu visible */
+.btn-change-data{
+  background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);
+  color:#f87171;border-radius:8px;padding:6px 12px;
+  font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:all .2s;display:flex;align-items:center;gap:5px;
+  flex-shrink:0;
+}
+.btn-change-data:hover{background:rgba(239,68,68,.25);border-color:#f87171;}
+/* Floating button di mobile */
+#fab-change{
+  display:none;position:fixed;bottom:20px;right:16px;z-index:200;
+  background:#ef4444;color:#fff;border:none;border-radius:50px;
+  padding:12px 18px;font-size:12px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 20px rgba(239,68,68,.5);
+  align-items:center;gap:6px;transition:all .2s;
+}
+#fab-change:hover{background:#dc2626;transform:scale(1.05);}
+@media(max-width:700px){
+  #fab-change{display:flex;}
+  .btn-change-data span.txt{display:none;} /* di hp cukup icon */
+}
 .sel{background:var(--card);border:1px solid var(--border2);color:var(--text);
   border-radius:8px;padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;
   cursor:pointer;outline:none;font-weight:500;}
@@ -893,6 +915,9 @@ body.light-mode .est-method-info .formula{background:rgba(0,0,0,.05);}
 <div class="topbar" id="topbar" style="display:none">
   <div class="brand">◆ Hotel Revenue Report <span>Lotus Garden by WH · 2026</span></div>
   <div class="topbar-r">
+    <button class="btn-change-data" onclick="confirmChangeData()" title="Ganti file Excel / hapus cache">
+      🔄 <span class="txt">Ganti Data</span>
+    </button>
     <div class="btn-nett-gross">
       <button class="btn-ng active" id="btn-nett" onclick="setRevMode('nett')">Nett</button>
       <button class="btn-ng" id="btn-gross" onclick="setRevMode('gross')">Gross</button>
@@ -1186,12 +1211,16 @@ function reupload(){
   clearInterval(_autoTimer);_data=null;
   document.getElementById('app').style.display='none';
   document.getElementById('topbar').style.display='none';
+  const _fab2=document.getElementById('fab-change');
+  if(_fab2) _fab2.style.display='none';
   document.getElementById('upload-gate').classList.remove('hide');
 }
 
 function showApp(name){
   document.getElementById('upload-gate').classList.add('hide');
   document.getElementById('topbar').style.display='';
+  const _fab=document.getElementById('fab-change');
+  if(_fab) _fab.style.display='flex';
   document.getElementById('app').style.display='block';
   document.getElementById('last-upd').textContent='📄 '+name.substring(0,28)+(name.length>28?'…':'')+' · '+new Date().toLocaleTimeString('id-ID');
   syncMonthDropdown();
@@ -3415,6 +3444,16 @@ function _idbShowBanner(name,ts){
 }
 
 // ── Clear cache ──
+function confirmChangeData(){
+  // Modal konfirmasi — lebih jelas untuk mobile
+  if(confirm('Ganti file Excel / data?
+
+Pilih OK untuk kembali ke halaman upload.
+(Cache akan dihapus)')){
+    idbClearCache();
+  }
+}
+
 async function idbClearCache(){
   if(!confirm('Hapus data cache Excel? File harus diupload ulang.')) return;
   try{
@@ -3440,5 +3479,10 @@ idbTryLoad().finally(()=>{
   document.getElementById('upload-gate').style.opacity='1';
 });
 </script>
+<!-- FAB Ganti Data (mobile) -->
+<button id="fab-change" onclick="confirmChangeData()">
+  🔄 Ganti Data
+</button>
+
 </body>
 </html>
