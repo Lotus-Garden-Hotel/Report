@@ -905,7 +905,8 @@ body.light-mode .est-method-info .formula{background:rgba(0,0,0,.05);}
       <strong style="color:var(--muted);">📌 Format URL GDrive yang didukung:</strong><br>
       <span style="color:var(--teal);">✓</span> <code style="font-size:8px;">https://drive.google.com/file/d/<b>FILE_ID</b>/view</code><br>
       <span style="color:var(--teal);">✓</span> <code style="font-size:8px;">https://docs.google.com/spreadsheets/d/<b>SHEET_ID</b>/edit</code><br>
-      <span style="color:var(--red);">✗</span> File <strong>harus di-share</strong>: <em>Anyone with the link → Viewer</em>
+      <span style="color:var(--teal);">✓</span> <code style="font-size:8px;">...?rtpof=true&sd=true</code> ← <em>Excel upload, otomatis terdeteksi</em><br>
+      <span style="color:var(--red);">✗</span> File <strong>WAJIB di-share</strong>: <em>Anyone with the link → Viewer</em>
     </div>
     <div class="auto-row">
       <input type="checkbox" id="chk-auto">
@@ -1175,37 +1176,47 @@ function checkNotHtml(buf){
 
 function buildFetchMethods(url){
   const methods=[];
-  const isGSheet=url.includes('spreadsheets/d/');
-  const isGDrive=url.includes('drive.google.com')||url.includes('docs.google.com');
-  const m=url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  const id=m?m[1]:'';
 
-  // Normalise: ambil ID dari berbagai format GDrive URL
-  // - /file/d/ID/view
-  // - /open?id=ID
-  // - /uc?id=ID
-  const idFromQ = (()=>{ try{ return new URL(url).searchParams.get('id')||''; }catch(_){return '';} })();
-  const finalId = id || idFromQ;
+  // ── Ekstrak ID dari semua format URL Google ──────────────────
+  // Format: /d/ID/  atau  ?id=ID
+  const mPath = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  const idFromPath = mPath ? mPath[1] : '';
+  const idFromQuery = (()=>{ try{ return new URL(url).searchParams.get('id')||''; }catch(_){return '';} })();
+  const finalId = idFromPath || idFromQuery;
+
+  // ── Deteksi tipe URL ─────────────────────────────────────────
+  // rtpof=true ATAU sd=true = file .xlsx yang diupload ke Drive (bukan native Sheets)
+  // Harus pakai uc?export=download, BUKAN /export?format=xlsx
+  const isUploadedXlsx = url.includes('rtpof=true') || url.includes('sd=true');
+  const isGSheet = url.includes('spreadsheets/d/') && !isUploadedXlsx;
+  const isGDriveFile = url.includes('drive.google.com/file/d/');
+  const isGDrive = (url.includes('drive.google.com') || url.includes('docs.google.com'))
+                    && !isGSheet;
 
   if(isGSheet && finalId){
+    // Native Google Sheets — export as xlsx
     const expUrl=`https://docs.google.com/spreadsheets/d/${finalId}/export?format=xlsx`;
-    methods.push({label:'GSheets direct',  fetchUrl: expUrl});
-    methods.push({label:'GSheets +gid',    fetchUrl: expUrl+'&gid=0'});
-    methods.push({label:'corsproxy.io',    fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(expUrl)});
-    methods.push({label:'allorigins',      fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(expUrl)});
-    methods.push({label:'cors.sh',         fetchUrl:`https://cors.sh/`+expUrl});
-  } else if(isGDrive && finalId){
-    // GDrive file.xlsx — gunakan uc?export=download
-    // confirm=t menghindari virus-warning redirect
-    const dlUrl1=`https://drive.google.com/uc?export=download&confirm=t&id=${finalId}`;
-    const dlUrl2=`https://drive.usercontent.google.com/download?id=${finalId}&export=download&confirm=t`;
-    const dlUrl3=`https://drive.google.com/uc?id=${finalId}&export=download`;
-    methods.push({label:'GDrive usercontent', fetchUrl: dlUrl2});
-    methods.push({label:'GDrive uc confirm',  fetchUrl: dlUrl1});
-    methods.push({label:'GDrive uc plain',    fetchUrl: dlUrl3});
-    methods.push({label:'corsproxy.io',       fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(dlUrl2)});
-    methods.push({label:'allorigins',         fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(dlUrl1)});
-    methods.push({label:'cors.sh',            fetchUrl:`https://cors.sh/`+dlUrl1});
+    methods.push({label:'GSheets direct',   fetchUrl: expUrl});
+    methods.push({label:'GSheets +gid',     fetchUrl: expUrl+'&gid=0'});
+    methods.push({label:'corsproxy.io',     fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(expUrl)});
+    methods.push({label:'allorigins',       fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(expUrl)});
+    methods.push({label:'cors.sh',          fetchUrl:`https://cors.sh/`+expUrl});
+
+  } else if((isGDrive || isUploadedXlsx) && finalId){
+    // File Excel yang diupload ke Drive (rtpof=true/sd=true) ATAU /file/d/
+    // Gunakan uc?export=download — satu-satunya cara
+    const dlUC       = `https://drive.google.com/uc?export=download&confirm=t&id=${finalId}`;
+    const dlContent  = `https://drive.usercontent.google.com/download?id=${finalId}&export=download&confirm=t`;
+    const dlUCplain  = `https://drive.google.com/uc?id=${finalId}&export=download`;
+    methods.push({label:'GDrive usercontent',  fetchUrl: dlContent});
+    methods.push({label:'GDrive uc+confirm',   fetchUrl: dlUC});
+    methods.push({label:'GDrive uc plain',     fetchUrl: dlUCplain});
+    methods.push({label:'corsproxy+content',   fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(dlContent)});
+    methods.push({label:'corsproxy+uc',        fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(dlUC)});
+    methods.push({label:'allorigins+content',  fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(dlContent)});
+    methods.push({label:'allorigins+uc',       fetchUrl:`https://api.allorigins.win/raw?url=`+encodeURIComponent(dlUC)});
+    methods.push({label:'cors.sh',             fetchUrl:`https://cors.sh/`+dlUC});
+
   } else if(url){
     methods.push({label:'Direct', fetchUrl:url});
     methods.push({label:'Proxy corsproxy', fetchUrl:`https://corsproxy.io/?`+encodeURIComponent(url)});
