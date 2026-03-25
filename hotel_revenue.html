@@ -732,6 +732,7 @@ table.est-tbl{width:100%;border-collapse:collapse;font-size:13px;}
 .src-onhand{background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.25);}
 .src-hist{background:rgba(148,163,184,.12);color:var(--muted);border:1px solid var(--border);}
 .src-actual{background:rgba(96,165,250,.12);color:var(--blue);border:1px solid rgba(96,165,250,.2);}
+.src-avrday{background:rgba(20,184,166,.15);color:#2dd4bf;border:1px solid rgba(20,184,166,.3);}
 /* Ach badge */
 .ach-e{display:inline-block;padding:3px 9px;border-radius:7px;font-size:11px;font-weight:800;
   font-family:'DM Mono',monospace;}
@@ -853,6 +854,7 @@ body.light-mode .pajak-tbl tr:hover td{background:rgba(0,0,0,.02);}
   white-space:nowrap;
 }
 .est-method-btn.active{background:var(--purple);color:#fff;}
+.est-method-btn#est-btn-avrday.active{background:var(--teal);color:#000;}
 .est-method-info{
   background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);
   border-radius:10px;padding:10px 16px;margin-bottom:14px;
@@ -1680,6 +1682,19 @@ function kpiCards(D){
               '<span class="gap-badge amber">Bulan berakhir</span>'
         }
       </div>
+
+      <!-- Card 4: AVR/Day Info (hanya tampil saat metode AVR/Day aktif) -->
+      ${typeof _estMethod!=='undefined'&&_estMethod==='avrday'&&!isOver&&remain>0?`
+      <div class="kpi-gap-card" style="border-color:rgba(20,184,166,.3);background:rgba(20,184,166,.04);">
+        <div class="gap-lbl" style="color:var(--teal);">🎯 AVR/Day Aktif</div>
+        <div class="gap-val" style="color:#2dd4bf;font-size:20px;">${fmtRp(neededDay)}</div>
+        <div class="gap-sub">Target per hari · ${remain} hari tersisa<br>
+          Estimasi = Budget − Actual · Proyeksi = 100% Budget</div>
+        <span class="gap-badge" style="background:rgba(20,184,166,.15);color:#2dd4bf;border:1px solid rgba(20,184,166,.3);">
+          Mode: Target Minimal
+        </span>
+      </div>`:''
+      }
 
     </div>
 
@@ -2566,8 +2581,9 @@ function buildEstimasi(){
       <div style="width:1px;height:24px;background:var(--border);margin:0 4px;flex-shrink:0"></div>
       <label style="font-size:10px;color:var(--dim);font-weight:600;white-space:nowrap">Metode:</label>
       <div class="est-method-toggle">
-        <button class="est-method-btn active" id="est-btn-blend" onclick="estSetMethod('blend')">Budget Blend</button>
-        <button class="est-method-btn" id="est-btn-wma" onclick="estSetMethod('wma')">Wtd Avg</button>
+        <button class="est-method-btn active" id="est-btn-blend"  onclick="estSetMethod('blend')">Budget Blend</button>
+        <button class="est-method-btn"        id="est-btn-wma"    onclick="estSetMethod('wma')">Wtd Avg</button>
+        <button class="est-method-btn"        id="est-btn-avrday" onclick="estSetMethod('avrday')" title="Target harian minimal agar budget tercapai">AVR/Day</button>
       </div>
       <div style="margin-left:auto;font-size:10px;color:var(--dim)" id="est-days-info"></div>
     </div>
@@ -2657,10 +2673,10 @@ function estSetMethod(m){
   _estMethod=m;
   const bb=document.getElementById('est-btn-blend');
   const bw=document.getElementById('est-btn-wma');
-  if(bb&&bw){
-    bb.classList.toggle('active',m==='blend');
-    bw.classList.toggle('active',m==='wma');
-  }
+  const ba=document.getElementById('est-btn-avrday');
+  if(bb) bb.classList.toggle('active',m==='blend');
+  if(bw) bw.classList.toggle('active',m==='wma');
+  if(ba) ba.classList.toggle('active',m==='avrday');
   _estCompute();
   idbSavePrefs();
 }
@@ -2908,11 +2924,21 @@ function _estCompute(){
 
   // ── EST: simpan dalam Nett ──
   const EST={};
-  const useBlend=(_estMethod==='blend');
+  const useBlend  =(_estMethod==='blend');
+  const useAvrDay =(_estMethod==='avrday');
+
+  // ── AVR/Day helper: Budget − Actual (target minimal capai 100%) ──
+  // Untuk line tanpa budget → fallback ke WMA
+  function _avrDayEst(key, actKey){
+    const bud=_lineBudget(key);
+    if(bud<=0) return _wmaDaily(actKey)*remain; // fallback jika tidak ada budget
+    return Math.max(bud - ACT[key], 0);
+  }
 
   // Room Revenue + Breakfast: prioritas dari Forecast TXT
   let fctRoomRev=0, fctBreakfast=0;
-  if(_estForecast){
+  if(_estForecast && !useAvrDay){
+    // AVR/Day tidak pakai TXT — selalu hitung dari budget
     _estForecast.rows.forEach((r,i)=>{
       if(i>=elapsed){
         fctRoomRev  += r.room_revenue/1.21;
@@ -2921,6 +2947,9 @@ function _estCompute(){
     });
     EST.room_rev  = fctRoomRev;
     EST.breakfast = fctBreakfast;
+  } else if(useAvrDay){
+    EST.room_rev  = _avrDayEst('room_rev',  'room_rev_act');
+    EST.breakfast = _avrDayEst('breakfast', 'breakfast_act');
   } else {
     // Tidak ada TXT → pakai metode terpilih
     if(useBlend){
@@ -2932,17 +2961,19 @@ function _estCompute(){
     }
   }
 
-  // Banquet: Onhand JSON prioritas
-  if(_estBanquet&&_estBanquet.byMonth[_estMonth]){
+  // Banquet: Onhand JSON prioritas (kecuali AVR/Day)
+  if(_estBanquet&&_estBanquet.byMonth[_estMonth]&&!useAvrDay){
     const bnq=_estBanquet.byMonth[_estMonth];
     EST.banquet=Math.max(bnq.total-ACT.banquet,0);
+  } else if(useAvrDay){
+    EST.banquet=_avrDayEst('banquet','banquet_act');
   } else {
     EST.banquet=useBlend
       ?_blendDaily('banquet_act','banquet')*remain
       :_wmaDaily('banquet_act')*remain;
   }
 
-  // Historical lines → pakai metode terpilih
+  // Other lines → pakai metode terpilih
   [
     {k:'restaurant',ak:'restaurant_act'},
     {k:'roomsvc',   ak:'roomsvc_act'},
@@ -2950,7 +2981,9 @@ function _estCompute(){
     {k:'coffee',    ak:'coffee_act'},
     {k:'other',     ak:'other_act'},
   ].forEach(({k,ak})=>{
-    EST[k]=useBlend?_blendDaily(ak,k)*remain:_wmaDaily(ak)*remain;
+    if(useAvrDay)      EST[k]=_avrDayEst(k,ak);
+    else if(useBlend)  EST[k]=_blendDaily(ak,k)*remain;
+    else               EST[k]=_wmaDaily(ak)*remain;
   });
 
   // ── PROJ = ACT + EST (semua Nett) ──
@@ -2965,14 +2998,30 @@ function _estCompute(){
   // Full Month Budget = langsung dari Excel col G (sudah full month, TIDAK di-scale)
   const fullBud=BUD.total;
 
-  // Source info
+  // Source info — nama badge ikut metode yang dipilih
+  // FIX: Historical Avg tidak lagi hardcoded — ikut _estMethod
+  const _methodBadge=
+    _estMethod==='blend'  ? '<span class="src-badge src-hist">📊 Budget Blend</span>'
+   :_estMethod==='avrday' ? '<span class="src-badge src-avrday">🎯 AVR/Day</span>'
+   :                        '<span class="src-badge src-hist">📊 Wtd Avg</span>';
+  const _methodBadgeFallback=
+    _estMethod==='blend'  ? '<span class="src-badge src-hist">📊 Budget Blend (no TXT)</span>'
+   :_estMethod==='avrday' ? '<span class="src-badge src-avrday">🎯 AVR/Day</span>'
+   :                        '<span class="src-badge src-hist">📊 Wtd Avg (no TXT)</span>';
+
   const srcLabel={
     forecast:`<span class="src-badge src-forecast">📄 Forecast TXT</span>`,
     onhand:`<span class="src-badge src-onhand">🎪 Onhand</span>`,
-    hist:`<span class="src-badge src-hist">📊 Historical Avg</span>`,
-    fallback:`<span class="src-badge src-hist">📊 Hist (no forecast)</span>`,
+    hist:_methodBadge,
+    fallback:_methodBadgeFallback,
   };
   function getSrcLabel(line){
+    // AVR/Day: semua line pakai badge AVR/Day kecuali yang punya sumber tetap (Onhand dengan data)
+    if(_estMethod==='avrday'){
+      if(line.src==='onhand'&&_estBanquet&&_estBanquet.byMonth[_estMonth])
+        return srcLabel.onhand; // Onhand tetap jika ada data
+      return _methodBadge; // semua lain → AVR/Day
+    }
     if(line.src==='forecast'&&!_estForecast) return srcLabel.fallback;
     if(line.src==='onhand'&&!_estBanquet) return srcLabel.hist;
     return srcLabel[line.src];
@@ -3050,25 +3099,36 @@ function _estCompute(){
     <!-- ESTIMATION TABLE -->
     <div class="sec-hdr" style="margin-top:20px;">
       <div class="sec-title">◆ Detail Estimasi Per Revenue Line</div>
-      <div class="sec-sub">${MNAMES[mi]} 2026 · ${elapsed} hari actual + ${remain} hari estimasi · Actual: ${lbl} · TXT: ${_estFctMode==='gross'?'Gross':'Nett'} · Metode: ${_estMethod==='blend'?'Budget Blend':'Weighted Avg'}</div>
+      <div class="sec-sub">${MNAMES[mi]} 2026 · ${elapsed} hari actual + ${remain} hari estimasi · Actual: ${lbl} · TXT: ${_estFctMode==='gross'?'Gross':'Nett'} · Metode: ${_estMethod==='blend'?'Budget Blend':_estMethod==='avrday'?'AVR/Day':'Weighted Avg'}</div>
     </div>
     <!-- Method explanation -->
     <div class="est-method-info">
       ${_estMethod==='blend'
         ?'<strong>Budget-Based Blending</strong> — Estimasi historical ×40% + sisa budget ÷ sisa hari ×60%.<br>'
          +'Formula: <span class="formula">EST = (Hist Avg/hari × 40%) + (Budget Tersisa/hari × 60%) × Sisa Hari</span>'
+        :_estMethod==='avrday'
+        ?'<strong>🎯 AVR/Day — Target Budget</strong> — Kekurangan dari budget dibagi sisa hari. Proyeksi selalu = 100% budget.<br>'
+         +'Formula: <span class="formula">EST = Budget Full Month − Actual MTD &nbsp;·&nbsp; Kebutuhan/hari = EST ÷ Sisa Hari</span>'
         :'<strong>Weighted Moving Average</strong> — Bulan terbaru diberi bobot lebih besar (20%/30%/50%).<br>'
          +'Formula: <span class="formula">EST = (Jan×20% + Feb×30% + Mar×50%) / hari × Sisa Hari</span>'
       }
-      ${!_estForecast?' · <em>Room Revenue & Breakfast: pakai metode terpilih (tidak ada Forecast TXT)</em>':'· Room Revenue & Breakfast dari Forecast TXT'}
-      ${!_estBanquet?' · Banquet: pakai metode terpilih (tidak ada Onhand JSON)':'· Banquet dari Onhand JSON'}
+      ${_estMethod==='avrday'
+        ?' · <em>Semua line: target minimal agar 100% budget tercapai</em>'
+        :!_estForecast?' · <em>Room Revenue & Breakfast: pakai metode terpilih (tidak ada Forecast TXT)</em>':'· Room Revenue & Breakfast dari Forecast TXT'
+      }
+      ${_estMethod!=='avrday'?(!_estBanquet?' · Banquet: pakai metode terpilih (tidak ada Onhand JSON)':'· Banquet dari Onhand JSON'):''}
     </div>
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;font-size:10px;color:var(--muted);">
       <span>Sumber:</span>
       <span class="src-badge src-actual">🔵 Actual dari Excel</span>
-      <span class="src-badge src-forecast">📄 Forecast dari TXT${_estForecast?'':' (belum upload — pakai historical)'}</span>
-      <span class="src-badge src-onhand">🎪 Onhand Banquet${_estBanquet?'':' (belum paste — pakai historical)'}</span>
-      <span class="src-badge src-hist">📊 Historical Avg ${_estForecast?'':''}</span>
+      ${_estMethod!=='avrday'?`<span class="src-badge src-forecast">📄 Forecast dari TXT${_estForecast?'':' (belum upload — pakai '+(_estMethod==='blend'?'Budget Blend':'Wtd Avg')+')'}</span>`:''}
+      ${_estMethod!=='avrday'?`<span class="src-badge src-onhand">🎪 Onhand Banquet${_estBanquet?'':' (belum paste — pakai '+(_estMethod==='blend'?'Budget Blend':'Wtd Avg')+')'}</span>`:''}
+      ${_estMethod==='avrday'
+        ?'<span class="src-badge src-avrday">🎯 AVR/Day — Target minimal capai 100% budget</span>'
+        :_estMethod==='blend'
+          ?'<span class="src-badge src-hist">📊 Budget Blend — Hist 40% + Budget/hari 60%</span>'
+          :'<span class="src-badge src-hist">📊 Wtd Avg — Jan×20%+Feb×30%+Mar×50%</span>'
+      }
     </div>
     <div class="est-tbl-wrap">
       <table class="est-tbl">
