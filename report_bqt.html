@@ -345,6 +345,67 @@ table.detail-tbl { width:100%; border-collapse:collapse; font-size:11px; }
 .budget-save-btn:hover { background:rgba(201,168,76,.25); }
 .budget-status { font-size:10px; color:var(--green); margin-top:8px; min-height:16px; }
 
+/* ── ACTUAL VS BUDGET GAP CARDS ── */
+.actvbud-grid {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;
+  margin-bottom:16px; margin-top:4px;
+}
+@media(max-width:900px) { .actvbud-grid { grid-template-columns:1fr; } }
+@media(max-width:600px) { .actvbud-grid { grid-template-columns:1fr; } }
+
+.actvbud-card {
+  background:var(--card); border:1px solid var(--border); border-radius:14px;
+  padding:18px 18px 14px; position:relative; overflow:hidden;
+  transition:transform .2s, box-shadow .2s;
+}
+.actvbud-card:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.25); }
+.actvbud-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+}
+.actvbud-card.gold::before  { background:linear-gradient(90deg,var(--gold),var(--gold2)); }
+.actvbud-card.green::before { background:linear-gradient(90deg,var(--green),#82e0aa); }
+.actvbud-card.red::before   { background:linear-gradient(90deg,var(--red),#f1948a); }
+.actvbud-card.amber::before { background:linear-gradient(90deg,var(--amber),#f8c471); }
+
+.actvbud-lbl {
+  font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--dim); margin-bottom:10px;
+}
+.actvbud-pct {
+  font-size:36px; font-weight:800; line-height:1.1; margin-bottom:6px;
+  font-family:'DM Mono',monospace;
+}
+.actvbud-pct.gold  { color:var(--gold); }
+.actvbud-pct.green { color:var(--green); }
+.actvbud-pct.red   { color:var(--red); }
+.actvbud-pct.amber { color:var(--amber); }
+
+.actvbud-row {
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:11px; color:var(--muted); margin-top:4px; line-height:1.6;
+}
+.actvbud-row strong { color:var(--text); font-weight:600; }
+.actvbud-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;
+  margin-top:10px;
+}
+.actvbud-badge.green { background:rgba(46,204,113,.12); color:var(--green); }
+.actvbud-badge.red   { background:rgba(231,76,60,.12);  color:var(--red); }
+.actvbud-badge.amber { background:rgba(243,156,18,.12); color:var(--amber); }
+
+.actvbud-bar-wrap { margin-top:12px; }
+.actvbud-bar-track {
+  height:5px; background:rgba(255,255,255,.06); border-radius:3px; overflow:hidden;
+}
+.actvbud-bar-fill { height:5px; border-radius:3px; transition:width .6s ease; }
+
+/* GAP column in monthly table */
+.gap-positive { color:var(--green); font-weight:700; }
+.gap-negative { color:var(--red);   font-weight:700; }
+.gap-zero     { color:var(--dim);   font-weight:400; }
+th.th-gap     { color:var(--red) !important; font-weight:800; }
+
 /* ── CANVAS CHARTS ── */
 .canvas-wrap { position:relative; width:100%; }
 canvas { width:100% !important; }
@@ -896,8 +957,126 @@ function renderKPI() {
         <div class="kpi-val">${cancel}</div>
         <div class="kpi-sub">${count + cancel > 0 ? Math.round(cancel/(count+cancel)*100) : 0}% cancellation rate</div>
       </div>
-    </div>`;
+    </div>
+    ${renderActVsBudCards(revenue, budgetRev, _selMonth)}`;
   return sec;
+}
+
+// ── ACTUAL VS BUDGET GAP CARDS ─────────────────────────────────
+function renderActVsBudCards(revenue, budgetRev, selMonth) {
+  if (!budgetRev || budgetRev === 0) return '';
+
+  // ── Hitung Achievement ──
+  const achPct   = budgetRev > 0 ? parseFloat((revenue / budgetRev * 100).toFixed(2)) : 0;
+  const gap      = revenue - budgetRev;   // negatif = kurang
+  const gapAbs   = Math.abs(gap);
+  const gapPct   = parseFloat((Math.abs(gap) / budgetRev * 100).toFixed(2));
+  const isOver   = gap >= 0;
+
+  // ── Sisa hari bulan ini (otomatis hari ini) ──
+  const now      = new Date();
+  const yr       = now.getFullYear();
+  const mo       = now.getMonth();   // 0-based
+  const today    = now.getDate();
+  const daysInMo = new Date(yr, mo + 1, 0).getDate();
+  const remain   = Math.max(daysInMo - today, 0);
+
+  // Hanya tampilkan needed/day jika filter bulan = bulan aktif atau ALL
+  const MONTH_IDX = {
+    'JANUARI':0,'FEBRUARI':1,'MARET':2,'APRIL':3,'MEI':4,'JUNI':5,
+    'JULI':6,'AGUSTUS':7,'SEPTEMBER':8,'OKTOBER':9,'NOVEMBER':10,'DESEMBER':11
+  };
+  const isCurMonth = selMonth === 'ALL' ||
+    (MONTH_IDX[selMonth] !== undefined && MONTH_IDX[selMonth] === mo);
+  const neededDay = (!isOver && remain > 0 && isCurMonth) ? gapAbs / remain : 0;
+
+  // ── Warna & label ──
+  const achColor  = isOver ? 'green' : achPct >= 70 ? 'amber' : 'red';
+  const gapColor  = isOver ? 'green' : 'red';
+  const cardColor = isOver ? 'green' : achPct >= 70 ? 'amber' : 'red';
+
+  // ── Card 1: Actual vs Budget ──
+  const card1 = `
+    <div class="actvbud-card ${cardColor}">
+      <div class="actvbud-lbl">📊 Actual vs Budget</div>
+      <div class="actvbud-pct ${achColor}">${achPct.toFixed(2)}%</div>
+      <div class="actvbud-row">
+        <span>Actual</span>
+        <strong>${fmtRpFull(revenue)}</strong>
+      </div>
+      <div class="actvbud-row">
+        <span>Budget</span>
+        <strong>${fmtRpFull(budgetRev)}</strong>
+      </div>
+      <span class="actvbud-badge ${achColor}">
+        ${isOver ? '▲ Melampaui target' : achPct >= 70 ? '▼ Mendekati target' : '▼ Di bawah target'}
+      </span>
+      <div class="actvbud-bar-wrap">
+        <div class="actvbud-bar-track">
+          <div class="actvbud-bar-fill" style="width:${Math.min(achPct,100)}%;background:${isOver?'var(--green)':achPct>=70?'var(--amber)':'var(--red)'}"></div>
+        </div>
+      </div>
+    </div>`;
+
+  // ── Card 2: Variance / GAP ──
+  const card2 = `
+    <div class="actvbud-card ${gapColor}">
+      <div class="actvbud-lbl">📉 Variance / GAP</div>
+      <div class="actvbud-pct ${gapColor}">${isOver ? '+' : '−'} ${fmtRp(gapAbs)}</div>
+      <div class="actvbud-row">
+        <span>GAP Rp</span>
+        <strong class="${gapColor}">${isOver ? '+' : '−'}${fmtRpFull(gapAbs)}</strong>
+      </div>
+      <div class="actvbud-row">
+        <span>GAP %</span>
+        <strong class="${gapColor}">${isOver ? '+' : '−'}${gapPct.toFixed(2)}% dari budget</strong>
+      </div>
+      <span class="actvbud-badge ${gapColor}">
+        ${isOver ? '✓ Surplus budget' : '✗ Belum tercapai'}
+      </span>
+    </div>`;
+
+  // ── Card 3: Kebutuhan/Hari ──
+  let card3 = '';
+  if (isOver) {
+    card3 = `
+    <div class="actvbud-card green">
+      <div class="actvbud-lbl">📅 Kebutuhan Revenue/Hari</div>
+      <div class="actvbud-pct green">—</div>
+      <div class="actvbud-row"><span>Status</span><strong>Budget sudah tercapai</strong></div>
+      <div class="actvbud-row"><span>Surplus</span><strong class="green">${fmtRpFull(gapAbs)}</strong></div>
+      <span class="actvbud-badge green">✓ Target selesai</span>
+    </div>`;
+  } else if (!isCurMonth) {
+    card3 = `
+    <div class="actvbud-card amber">
+      <div class="actvbud-lbl">📅 Kebutuhan Revenue/Hari</div>
+      <div class="actvbud-pct amber">—</div>
+      <div class="actvbud-row"><span>Info</span><strong>Pilih bulan berjalan</strong></div>
+      <div class="actvbud-row"><span>Total kurang</span><strong class="red">${fmtRpFull(gapAbs)}</strong></div>
+      <span class="actvbud-badge amber">Bulan tidak aktif</span>
+    </div>`;
+  } else if (remain === 0) {
+    card3 = `
+    <div class="actvbud-card amber">
+      <div class="actvbud-lbl">📅 Kebutuhan Revenue/Hari</div>
+      <div class="actvbud-pct red">${fmtRp(gapAbs)}</div>
+      <div class="actvbud-row"><span>Status</span><strong>Bulan sudah berakhir</strong></div>
+      <div class="actvbud-row"><span>GAP Final</span><strong class="red">${fmtRpFull(gapAbs)}</strong></div>
+      <span class="actvbud-badge red">Bulan berakhir</span>
+    </div>`;
+  } else {
+    card3 = `
+    <div class="actvbud-card red">
+      <div class="actvbud-lbl">📅 Kebutuhan Revenue/Hari</div>
+      <div class="actvbud-pct red">${fmtRp(neededDay)}</div>
+      <div class="actvbud-row"><span>Per hari</span><strong class="red">${remain} hari tersisa</strong></div>
+      <div class="actvbud-row"><span>Total kurang</span><strong class="red">${fmtRpFull(gapAbs)}</strong></div>
+      <span class="actvbud-badge red">Target harian tambahan</span>
+    </div>`;
+  }
+
+  return `<div class="actvbud-grid fade-up">${card1}${card2}${card3}</div>`;
 }
 
 // ── SECTION 2: ON-HAND vs BUDGET ────────────────────────────────
@@ -1098,11 +1277,20 @@ function renderMonthlyTable() {
   const rows = MONTHS.map((m, i) => {
     const d = _reportData?.[m];
     const b = getBudgetFor(m);
-    const rev = d ? (d.events||[]).filter(e=>e.status!=='CANCEL').reduce((s,e)=>s+getRevenue(e.revenue),0) : 0;
-    const cnt = d?.count   || 0;
-    const pax = d?.pax     || 0;
+    const rev      = d ? (d.events||[]).filter(e=>e.status!=='CANCEL').reduce((s,e)=>s+getRevenue(e.revenue),0) : 0;
+    const cnt      = d?.count || 0;
+    const pax      = d?.pax   || 0;
     const budDisplay = getBudgetDisplay(b.targetRevenue);
-    const ach = pct(rev, budDisplay);
+    const ach      = pct(rev, budDisplay);
+
+    // Variance GAP
+    const gap      = rev - budDisplay;            // negatif = kurang
+    const gapAbs   = Math.abs(gap);
+    const gapPct   = budDisplay > 0 ? parseFloat((gapAbs / budDisplay * 100).toFixed(2)) : 0;
+    const isOver   = gap >= 0;
+    const gapCls   = budDisplay === 0 ? 'gap-zero' : isOver ? 'gap-positive' : 'gap-negative';
+    const gapSign  = budDisplay === 0 ? '' : isOver ? '+' : '−';
+
     const isActive = _selMonth === m || _selMonth === 'ALL';
     return `<tr style="opacity:${isActive?1:.4}">
       <td style="font-weight:700;color:var(--gold)">${MONTH_SHORT[i]}</td>
@@ -1115,6 +1303,12 @@ function renderMonthlyTable() {
       <td class="tbl-revenue">${fmtRp(rev)}</td>
       <td style="color:var(--muted)">${budDisplay > 0 ? fmtRp(budDisplay) : '—'}</td>
       <td style="font-weight:700;color:${ach>=100?'var(--done)':ach>=70?'var(--amber)':'var(--red)'}">${budDisplay>0?ach+'%':'—'}</td>
+      <td class="${gapCls}" style="font-size:11px;white-space:nowrap;">
+        ${budDisplay > 0
+          ? `${gapSign}${fmtRp(gapAbs)}<br>
+             <span style="font-size:9px;opacity:.8">${gapSign}${gapPct.toFixed(2)}%</span>`
+          : '—'}
+      </td>
     </tr>`;
   }).join('');
 
@@ -1124,6 +1318,7 @@ function renderMonthlyTable() {
         <thead><tr>
           <th>Bulan</th><th>Events</th><th>Confirm</th><th>Tentative</th><th>Done</th><th>Cancel</th>
           <th>Pax</th><th>Revenue</th><th>Budget</th><th>Achieve</th>
+          <th class="th-gap">Variance GAP</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
