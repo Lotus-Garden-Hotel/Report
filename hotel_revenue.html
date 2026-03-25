@@ -340,10 +340,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opa
 
 /* ── SECONDARY KPI STRIP ── */
 .kpi-gap-grid{
-  display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;
+  display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;
   margin-bottom:12px;margin-top:12px;
 }
-@media(max-width:900px){.kpi-gap-grid{grid-template-columns:1fr;}}
+@media(max-width:1100px){.kpi-gap-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.kpi-gap-grid{grid-template-columns:1fr;}}
 .kpi-gap-card{
   background:var(--card);border:1px solid var(--border);border-radius:14px;
   padding:18px 20px;position:relative;overflow:hidden;
@@ -355,6 +356,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opa
 .kpi-gap-card.orange::before{background:linear-gradient(90deg,var(--amber),#fbbf24);}
 .kpi-gap-card.teal2::before{background:linear-gradient(90deg,#14b8a6,#5eead4);}
 .kpi-gap-card.ok::before{background:linear-gradient(90deg,var(--green),#6ee7b7);}
+.kpi-gap-card.purple::before{background:linear-gradient(90deg,var(--purple),#c4b5fd);}
 .gap-lbl{font-size:9px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;font-weight:700;}
 .gap-val{font-size:28px;font-weight:800;line-height:1.1;margin-bottom:4px;font-family:'DM Mono',monospace;}
 .gap-val.red{color:var(--red);}
@@ -369,6 +371,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opa
 .gap-badge.red{background:rgba(239,68,68,.15);color:var(--red);}
 .gap-badge.green{background:rgba(34,197,94,.15);color:var(--green);}
 .gap-badge.amber{background:rgba(245,158,11,.15);color:var(--amber);}
+.gap-badge.purple{background:rgba(167,139,250,.15);color:var(--purple);}
 .gap-needed-bar{margin-top:12px;}
 .gap-bar-track{height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
 .gap-bar-fill{height:4px;border-radius:2px;transition:width .6s ease;}
@@ -678,8 +681,9 @@ body.light-mode .rekap-tbl tr.rekap-total td{background:rgba(201,168,76,.1);}
   cursor:pointer;outline:none;font-weight:600;}
 .est-sel:focus{border-color:var(--gold);}
 /* KPI row */
-.est-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
-@media(max-width:800px){.est-kpi-row{grid-template-columns:1fr 1fr;}}
+.est-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;}
+@media(max-width:1100px){.est-kpi-row{grid-template-columns:1fr 1fr 1fr;}}
+@media(max-width:700px){.est-kpi-row{grid-template-columns:1fr 1fr;}}
 .est-kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;
   padding:16px 18px;position:relative;overflow:hidden;}
 .est-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
@@ -1004,6 +1008,8 @@ const MSHORT=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov',
 const VAT=1.21; // PPN — nilai Gross = Nett × 1.21
 
 let _data=null,_autoTimer=null,_srcType=null,_srcURL='',_lastFile=null,_charts={};
+// ── PTER Budget per bulan (dibaca dinamis dari sheet PTER saat upload) ──
+let _PTER_BUD={JAN:0,FEB:0,MAR:0,APR:0,MEI:0,JUN:0,JUL:0,AUG:0,SEP:0,OKT:0,NOV:0,DES:0};
 let _revMode='nett'; // 'nett' | 'gross'
 let _selMonth='AUTO'; // 'ALL' | 'JAN' | ... | 'AUTO' (latest)
 
@@ -1406,6 +1412,29 @@ function parseExcel(buf){
       rekap: parseRekap(rows)   // ← A1:L25 Daily Rekapitulasi
     };
   });
+
+  // ── Parse sheet PTER → _PTER_BUD dinamis ──────────────────────────
+  const wsPTER = wb.Sheets['PTER'];
+  if(wsPTER){
+    const pterRows = XLSX.utils.sheet_to_json(wsPTER,{header:1,defval:null});
+    // Map nama bulan di sheet PTER ke key SHEETS
+    const pterMonthMap={
+      'JAN':'JAN','FEB':'FEB','MAR':'MAR','APR':'APR',
+      'MAY':'MEI','MEI':'MEI','JUN':'JUN','JUL':'JUL',
+      'AUG':'AUG','SEP':'SEP','OCT':'OKT','OKT':'OKT',
+      'NOV':'NOV','DEC':'DES','DES':'DES'
+    };
+    const nP=(v,d=0)=>{if(v===null||v===undefined||v==='')return d;const f=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isNaN(f)?d:f;};
+    pterRows.forEach(r=>{
+      if(!r||!r[0])return;
+      const bulan=String(r[0]).trim().toUpperCase();
+      const key=pterMonthMap[bulan];
+      if(key && r[1]!==null && r[1]!==undefined){
+        _PTER_BUD[key]=nP(r[1]);
+      }
+    });
+  }
+
   _data=res;
 }
 
@@ -1590,6 +1619,13 @@ function kpiCards(D){
   // Achievement % OCC vs budget
   const occAch   = pct(occ, occB);
 
+  // ── PTER CALCULATION ──────────────────────────────
+  const mk = Object.keys(_data||{}).find(k=>_data[k]===D) || latest();
+  const pterBud = _PTER_BUD[mk] || 121588149;
+  const pterPct = mta > 0 ? (pterBud / mta * 100) : 0;
+  const pterCls = pterPct <= 20 ? 'green' : pterPct <= 30 ? 'amber' : 'red';
+  const pterCardCls = pterPct <= 20 ? 'ok' : pterPct <= 30 ? 'orange' : 'red';
+
   div.innerHTML=`
     <div class="sec-hdr" style="margin-top:20px;">
       <div class="sec-title">◆ KPI Summary</div>
@@ -1693,8 +1729,25 @@ function kpiCards(D){
         <span class="gap-badge" style="background:rgba(20,184,166,.15);color:#2dd4bf;border:1px solid rgba(20,184,166,.3);">
           Mode: Target Minimal
         </span>
-      </div>`:''
-      }
+      </div>`:''}
+
+      <!-- Card HR PTER: Actual Revenue MTD vs Budget PTER -->
+      <div class="kpi-gap-card purple">
+        <div class="gap-lbl">👥 HR · PTER % Actual vs Budget</div>
+        <div class="gap-val ${pterCls}">${mta>0?pterPct.toFixed(2)+'%':'—'}</div>
+        <div class="gap-sub">
+          Budget PTER &nbsp;: ${fmtFull(pterBud)}<br>
+          Actual MTD &nbsp;&nbsp;: ${fmtFull(mta)}
+        </div>
+        <span class="gap-badge ${pterCls}">
+          ${mta<=0?'— Belum ada data':pterPct<=20?'✓ Sangat Efisien':pterPct<=30?'⚠ Perhatian':'✗ Di Atas Wajar'}
+        </span>
+        <div class="gap-needed-bar">
+          <div class="gap-bar-track">
+            <div class="gap-bar-fill" style="width:${Math.min(pterPct,100)}%;background:${pterPct<=20?'var(--green)':pterPct<=30?'var(--amber)':'var(--red)'}"></div>
+          </div>
+        </div>
+      </div>
 
     </div>
 
@@ -3094,6 +3147,20 @@ function _estCompute(){
         <div class="est-kpi-bar"><div class="est-kpi-bar-fill"
           style="width:${Math.min(totalAch,100)}%;background:${totalAch>=100?'var(--green)':'var(--amber)'}"></div></div>
       </div>
+      ${(()=>{
+        const _pterBudEst=(_PTER_BUD[_estMonth]||121588149);
+        const _actMtdEst=getRev(totalAct);
+        const _pterPctEst=_actMtdEst>0?(_pterBudEst/_actMtdEst*100):0;
+        const _pterClsEst=_pterPctEst<=20?'green':_pterPctEst<=30?'amber':'red';
+        return `<div class="est-kpi" style="border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.04);">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--purple),#c4b5fd);border-radius:14px 14px 0 0;"></div>
+          <div class="est-kpi-lbl" style="color:#a78bfa;">👥 HR · PTER %</div>
+          <div class="est-kpi-val" style="color:#a78bfa;">${_actMtdEst>0?_pterPctEst.toFixed(2)+'%':'—'}</div>
+          <div class="est-kpi-sub">Budget PTER: ${fmtFull(_pterBudEst)}<br>Actual MTD: ${fmtFull(_actMtdEst)}</div>
+          <div class="est-kpi-bar"><div class="est-kpi-bar-fill"
+            style="width:${Math.min(_pterPctEst,100)}%;background:${_pterPctEst<=20?'var(--green)':_pterPctEst<=30?'var(--amber)':'var(--red)'}"></div></div>
+        </div>`;
+      })()}
     </div>
 
     <!-- ESTIMATION TABLE -->
