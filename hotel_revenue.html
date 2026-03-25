@@ -1524,7 +1524,7 @@ function occHero(D){
       <div class="sec-sub">${D.month} 2026 · s/d Hari ke-${ad}</div></div>
     <div class="occ-hero">
       <div class="occ-item">
-        <div class="occ-lbl">Today Occupancy</div>
+        <div class="occ-lbl">last Night Occupancy</div>
         <div class="occ-val ${oT>=.8?'green':oT>=.6?'amber':'red'}">${oc(oT)}</div>
         <div class="occ-meta">${D.today.sold} / ${D.today.sellable} kamar sold</div>
         <div class="occ-delta ${oT>=oMB?'up':'down'}">${oT>=oMB?'▲ Di atas':'▼ Di bawah'} budget ${oc(oMB)}</div>
