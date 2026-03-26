@@ -872,6 +872,55 @@ body.light-mode .pajak-tbl tr:hover td{background:rgba(0,0,0,.02);}
 }
 body.light-mode .est-method-info .formula{background:rgba(0,0,0,.05);}
 
+/* ── Report RB & RO ── */
+.bf-upload-zone{border:2px dashed rgba(20,184,166,.3);border-radius:16px;padding:32px 24px;
+  text-align:center;cursor:pointer;transition:all .2s;background:rgba(20,184,166,.02);
+  margin-bottom:20px;}
+.bf-upload-zone:hover,.bf-upload-zone.drag-over{border-color:var(--teal);background:rgba(20,184,166,.07);}
+.bf-upload-zone.loaded{border-color:rgba(20,184,166,.5);background:rgba(20,184,166,.06);cursor:default;}
+.bf-drop-icon{font-size:36px;margin-bottom:8px;}
+.bf-drop-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.bf-drop-sub{font-size:11px;color:var(--muted);}
+.bf-status-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+  color:var(--teal);background:rgba(20,184,166,.12);border:1px solid rgba(20,184,166,.25);
+  border-radius:8px;padding:4px 12px;margin-top:8px;}
+.bf-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+@media(max-width:900px){.bf-kpi-grid{grid-template-columns:1fr 1fr;}}
+.bf-kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;}
+.bf-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.bf-kpi.ro::before{background:linear-gradient(90deg,#3B8BD4,#93c5fd);}
+.bf-kpi.rbf::before{background:linear-gradient(90deg,#E8593C,#fca5a5);}
+.bf-kpi.total::before{background:linear-gradient(90deg,var(--teal),#5eead4);}
+.bf-kpi.pct::before{background:linear-gradient(90deg,var(--amber),#fcd34d);}
+.bf-kpi-lbl{font-size:9px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;margin-bottom:7px;font-weight:700;}
+.bf-kpi-val{font-family:'DM Mono',monospace;font-size:30px;font-weight:800;line-height:1;}
+.bf-kpi-val.ro{color:#3B8BD4;}
+.bf-kpi-val.rbf{color:#E8593C;}
+.bf-kpi-val.teal{color:var(--teal);}
+.bf-kpi-val.amber{color:var(--amber);}
+.bf-kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.bf-tbl-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--border);margin-bottom:18px;}
+table.bf-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.bf-tbl thead th{background:var(--dark);padding:10px 14px;text-align:right;font-size:9px;
+  font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+  border-bottom:2px solid var(--border);white-space:nowrap;}
+.bf-tbl thead th:first-child{text-align:left;}
+.bf-tbl td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);text-align:right;white-space:nowrap;font-weight:500;}
+.bf-tbl td:first-child{text-align:left;font-weight:700;color:var(--text);}
+.bf-tbl tr:hover td{background:rgba(255,255,255,.025);}
+body.light-mode .bf-tbl tr:hover td{background:rgba(0,0,0,.02);}
+.bf-tbl .total-row td{background:rgba(20,184,166,.1);font-weight:800;border-top:2px solid rgba(20,184,166,.3);}
+.bf-bar-wrap{display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:3px;}
+.bf-bar-ro{background:#3B8BD4;height:100%;}
+.bf-bar-rbf{background:#E8593C;height:100%;}
+.bf-legend{display:flex;gap:14px;margin-bottom:10px;font-size:11px;color:var(--muted);}
+.bf-leg-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle;}
+.bf-no-data{text-align:center;padding:48px 24px;color:var(--muted);font-size:13px;}
+body.light-mode .bf-tbl thead th{background:#eeece6;}
+body.light-mode .bf-tbl td{border-bottom-color:rgba(0,0,0,.05);}
+/* sel-roomtype topbar */
+#sel-roomtype{display:none;}
+
 /* ── ANIMATIONS ── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes scaleIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
@@ -954,8 +1003,14 @@ body.light-mode .est-method-info .formula{background:rgba(0,0,0,.05);}
       <option value="ytd">YTD</option>
       <option value="rekap">📋 Rekapitulasi Harian</option>
       <option value="segment">Market Segment</option>
+      <option value="roomtype">🛏 Report RO & RBF </option>
       <option value="estimasi">🔮 Estimasi All Revenue</option>
       <option value="pajak">🧾 Laporan Pajak &amp; Service</option>
+    </select>
+    <select class="sel" id="sel-roomtype" onchange="render()">
+      <option value="all">Semua Tipe</option>
+      <option value="ro">Room Only</option>
+      <option value="rbf">Room Breakfast</option>
     </select>
     <button class="ctrl-btn primary" onclick="manualRefresh()">↺ Refresh</button>
     <button class="ctrl-btn" onclick="reupload()">📂 Ganti File</button>
@@ -1501,6 +1556,9 @@ function render(){
   const view=document.getElementById('sel-view').value;
   const main=document.getElementById('main');
   main.innerHTML='';
+  // Tampilkan/sembunyikan filter Room Type
+  const selRt=document.getElementById('sel-roomtype');
+  if(selRt) selRt.style.display=(view==='roomtype')?'':'none';
 
   // Tentukan bulan aktif
   const selM=document.getElementById('sel-month')?.value||'ALL';
@@ -1528,6 +1586,8 @@ function render(){
     main.appendChild(ytdFull());
   }else if(view==='segment'){
     main.appendChild(segmentPivot());
+  }else if(view==='roomtype'){
+    main.appendChild(roomTypeView());
   }else if(view==='rekap'){
     main.appendChild(dailyRekap());
   }else if(view==='pajak'){
@@ -2222,6 +2282,7 @@ function dailyRekap(){
 // ── MARKET SEGMENT PIVOT ──
 let _segSortBy='total'; // 'total' | 'name' | 'group'
 let _segFilter='all';   // 'all' | 'ota' | 'direct' | 'corp' | 'other'
+let _bfData=null;       // parsed breakfast excel data
 
 function segmentPivot(){
   const div=document.createElement('div');div.className='fade';
@@ -3692,6 +3753,339 @@ async function idbClearCache(){
     toast('✓ Cache dihapus');
     reupload();
   }catch(e){toast('⚠ Gagal hapus cache: '+e.message);}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ROOM TYPE VIEW — RO vs RBF
+// ══════════════════════════════════════════════════════════════════
+
+// Sheet name → [label, monthIndex 1-based, colFormat]
+// Format A: date=col0,ro=col1,rbf=col2,tot=col3,occ=col4, dataStart=row2
+// Format B: date=col1,ro=col2,rbf=col3,tot=col4,occ=col5, dataStart=row3
+const BF_SHEET_MAP=[
+  {sheet:'Jan', label:'Jan', mi:1, fmt:'A'},
+  {sheet:'Feb', label:'Feb', mi:2, fmt:'A'},
+  {sheet:'March', label:'Mar', mi:3, fmt:'A'},
+  {sheet:'APR', label:'Apr', mi:4, fmt:'A'},
+  {sheet:'May', label:'Mei', mi:5, fmt:'B'},
+  {sheet:'Juni', label:'Jun', mi:6, fmt:'B'},
+  {sheet:'July', label:'Jul', mi:7, fmt:'B'},
+  {sheet:'AUGT', label:'Agt', mi:8, fmt:'B'},
+  {sheet:'SEPT', label:'Sep', mi:9, fmt:'B'},
+  {sheet:'OKT', label:'Okt', mi:10, fmt:'B'},
+  {sheet:'Nov', label:'Nov', mi:11, fmt:'B'},
+  {sheet:'DES', label:'Des', mi:12, fmt:'B'},
+];
+
+function parseBreakfastExcel(buf){
+  const wb=XLSX.read(buf,{type:'array',cellDates:true});
+  const result={months:[], ytd:{ro:0,rbf:0,total:0}};
+  const n=(v,d=0)=>{if(v===null||v===undefined||v==='')return d;const f=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isNaN(f)?d:f;};
+
+  BF_SHEET_MAP.forEach(({sheet,label,mi,fmt})=>{
+    const ws=wb.Sheets[sheet];
+    if(!ws){result.months.push({label,mi,ro:0,rbf:0,total:0,daily:[],hasData:false});return;}
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+    const daily=[];
+    const dataStart=fmt==='A'?2:3;
+    const col=fmt==='A'?{ro:1,rbf:2,tot:3,occ:4}:{ro:2,rbf:3,tot:4,occ:5};
+    for(let i=dataStart;i<rows.length;i++){
+      const r=rows[i];
+      if(!r||!r.length)continue;
+      // [FIX] Stop saat kolom A berisi teks (GRAND TOTAL, NB, dll)
+      // XLSX.js: date → Date object, teks → string, kosong → null
+      const cellA=r[0];
+      if(typeof cellA==='string' && /[a-zA-Z]/.test(cellA)) break;
+      // [FIX] Skip baris jika RO atau RBF adalah desimal kecil (% row)
+      const roRaw=r[col.ro], rbfRaw=r[col.rbf];
+      if(roRaw===null&&rbfRaw===null) continue;
+      const ro=n(roRaw), rbf=n(rbfRaw);
+      // [FIX] Skip baris formula SUM — nilai jauh lebih besar dari max rooms (50)
+      // atau nilai adalah persentase (< 1)
+      if(ro > 500 || rbf > 500) continue;   // max 50 rooms, SUM row pasti > 500 jika ada
+      if(ro===0&&rbf===0) continue;
+      const dayNum = i - dataStart + 1;
+      // Hitung total dari raw data, bukan formula =B+C
+      const tot = ro + rbf;
+      const occ = n(r[col.occ]);
+      daily.push({day:dayNum, ro, rbf, total:tot, occ});
+    }
+    const totalRO  = daily.reduce((s,r)=>s+r.ro,  0);
+    const totalRBF = daily.reduce((s,r)=>s+r.rbf, 0);
+    const totalAll = totalRO + totalRBF;
+    const hasData  = totalAll > 0;
+    result.months.push({label, mi, ro:totalRO, rbf:totalRBF, total:totalAll, daily, hasData});
+    if(hasData){result.ytd.ro+=totalRO; result.ytd.rbf+=totalRBF; result.ytd.total+=totalAll;}
+  });
+  return result;
+}
+
+function roomTypeView(){
+  const div=document.createElement('div');div.className='fade';
+  const rtFilter=document.getElementById('sel-roomtype')?.value||'all';
+  const selM=document.getElementById('sel-month')?.value||'ALL';
+
+  // ── Header ──
+  div.innerHTML=`<div class="sec-hdr" style="margin-top:0">
+    <div class="sec-title">🛏 Laporan Data</div>
+    <div class="sec-sub">Room Only vs Room Breakfast</div>
+  </div>`;
+
+  // ── Upload zone ──
+  const upSection=document.createElement('div');
+  if(!_bfData){
+    upSection.innerHTML=`
+      <div class="bf-upload-zone" id="bf-drop-zone">
+        <div class="bf-drop-icon">📊</div>
+        <div class="bf-drop-title">Upload Data Breakfast Excel</div>
+        <div class="bf-drop-sub">Drag &amp; drop atau klik untuk pilih file<br>
+          <span style="font-size:10px;color:var(--dim)">DATA_GUEST_DAILY_BREAKFAST_2026.xlsx</span>
+        </div>
+        <input type="file" id="bf-file-input" accept=".xlsx,.xls" style="display:none">
+      </div>
+      <div id="bf-err" style="font-size:11px;color:var(--red);min-height:16px;margin-bottom:8px;"></div>`;
+  } else {
+    const d=_bfData;
+    const pctRBF=d.ytd.total>0?Math.round(d.ytd.rbf/d.ytd.total*100):0;
+    const pctRO=100-pctRBF;
+    upSection.innerHTML=`
+      <div class="bf-upload-zone loaded" style="padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">✅</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--teal)">Data Breakfast Loaded</div>
+            <div style="font-size:10px;color:var(--muted)">${d.months.filter(m=>m.hasData).length} bulan aktif · YTD Total ${d.ytd.total.toLocaleString('id-ID')} kamar</div>
+          </div>
+        </div>
+        <button onclick="_bfData=null;render();" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:8px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;">✕ Hapus</button>
+      </div>`;
+  }
+  div.appendChild(upSection);
+
+  if(!_bfData){
+    // Pasang event setelah DOM append
+    setTimeout(()=>{
+      const dz=document.getElementById('bf-drop-zone');
+      const fi=document.getElementById('bf-file-input');
+      if(!dz||!fi)return;
+      dz.addEventListener('click',()=>fi.click());
+      dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+      dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+      dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');if(e.dataTransfer.files[0])_bfLoad(e.dataTransfer.files[0]);});
+      fi.addEventListener('change',e=>{if(e.target.files[0])_bfLoad(e.target.files[0]);});
+    },50);
+    div.appendChild(_bfNoDataPlaceholder());
+    return div;
+  }
+
+  // ── Data tersedia — tampilkan dashboard ──
+  const d=_bfData;
+  const activeMonths=d.months.filter(m=>m.hasData);
+  const ytd=d.ytd;
+  const pctRBF=ytd.total>0?Math.round(ytd.rbf/ytd.total*100):0;
+  const pctRO=100-pctRBF;
+
+  // KPI Cards
+  const kpiDiv=document.createElement('div');kpiDiv.className='bf-kpi-grid';
+  // Avg per month
+  const avgPerMonth = activeMonths.length > 0 ? Math.round(ytd.total / activeMonths.length) : 0;
+  const kpis=[
+    {cls:'ro',   valCls:'ro',   lbl:'Total Room Only YTD',      val:ytd.ro.toLocaleString('id-ID') + ' kamar',   sub:`${pctRO}% dari total tamu`},
+    {cls:'rbf',  valCls:'rbf',  lbl:'Total Room Breakfast YTD', val:ytd.rbf.toLocaleString('id-ID') + ' kamar',  sub:`${pctRBF}% dari total tamu`},
+    {cls:'total',valCls:'teal', lbl:'Total Room Sold YTD',      val:ytd.total.toLocaleString('id-ID') + ' kamar',sub:`${activeMonths.length} bulan · avg ${avgPerMonth.toLocaleString('id-ID')}/bulan`},
+    {cls:'pct',  valCls:'amber',lbl:'Dominasi Room Breakfast',  val:pctRBF+'%',                                  sub:`Room Only: ${pctRO}%`},
+  ];
+  kpis.forEach(k=>{
+    kpiDiv.innerHTML+=`<div class="bf-kpi ${k.cls}">
+      <div class="bf-kpi-lbl">${k.lbl}</div>
+      <div class="bf-kpi-val ${k.valCls}">${k.val}</div>
+      <div class="bf-kpi-sub">${k.sub}</div>
+    </div>`;
+  });
+  div.appendChild(kpiDiv);
+
+  // ── Chart: Stacked Bar YTD ──
+  const chartCard=document.createElement('div');chartCard.className='chart-card';
+  chartCard.innerHTML=`<div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>RO vs RBF per Bulan</span>
+    <div class="bf-legend" style="margin:0">
+      <span><span class="bf-leg-dot" style="background:#3B8BD4"></span>Room Only</span>
+      <span><span class="bf-leg-dot" style="background:#E8593C"></span>Room Breakfast</span>
+    </div>
+  </div>
+  <div style="position:relative;height:260px"><canvas id="bf-chart-ytd"></canvas></div>`;
+  div.appendChild(chartCard);
+
+  // ── Tabel Monthly ──
+  const tblCard=document.createElement('div');tblCard.className='chart-card';
+  let tblRows='';
+  let filteredMonths=activeMonths;
+  if(rtFilter==='ro') filteredMonths=activeMonths.map(m=>({...m,rbf:0,total:m.ro}));
+  else if(rtFilter==='rbf') filteredMonths=activeMonths.map(m=>({...m,ro:0,total:m.rbf}));
+
+  filteredMonths.forEach(m=>{
+    const pRBF=m.total>0?Math.round(m.rbf/m.total*100):0;
+    const pRO=100-pRBF;
+    tblRows+=`<tr>
+      <td style="font-weight:700;color:var(--gold)">${m.label}</td>
+      <td style="color:#3B8BD4;font-family:'DM Mono',monospace;text-align:right">
+        ${rtFilter==='rbf'?'—':m.ro.toLocaleString('id-ID')}</td>
+      <td style="color:#E8593C;font-family:'DM Mono',monospace;text-align:right">
+        ${rtFilter==='ro'?'—':m.rbf.toLocaleString('id-ID')}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--teal);text-align:right;font-weight:700">
+        ${m.total.toLocaleString('id-ID')}</td>
+      <td>${rtFilter==='all'?
+        `<div style="display:flex;flex-direction:column;gap:3px;min-width:100px">
+          <div class="bf-bar-wrap" style="width:100%">
+            <div class="bf-bar-ro" style="width:${pRO}%"></div>
+            <div class="bf-bar-rbf" style="width:${pRBF}%"></div>
+          </div>
+          <div style="font-size:9px;color:var(--muted)">${pRO}% RO · ${pRBF}% RBF</div>
+        </div>`:'—'
+      }</td>
+    </tr>`;
+  });
+
+  // Total row
+  const tRO=filteredMonths.reduce((s,m)=>s+(rtFilter==='rbf'?0:m.ro),0);
+  const tRBF=filteredMonths.reduce((s,m)=>s+(rtFilter==='ro'?0:m.rbf),0);
+  const tAll=filteredMonths.reduce((s,m)=>s+m.total,0);
+  const tPRBF=tAll>0?Math.round(tRBF/tAll*100):0;
+  const tPRO=100-tPRBF;
+
+  tblCard.innerHTML=`<div class="chart-title">Rekapitulasi Bulanan — ${rtFilter==='all'?'Semua Tipe':rtFilter==='ro'?'Room Only':'Room Breakfast'}</div>
+  <div class="bf-tbl-wrap"><table class="bf-tbl">
+    <thead><tr style="background:rgba(201,168,76,.06);">
+      <th style="text-align:left;color:var(--gold)">BULAN</th>
+      <th style="color:#3B8BD4">ROOM ONLY</th>
+      <th style="color:#E8593C">ROOM BREAKFAST</th>
+      <th style="color:var(--teal)">TOTAL</th>
+      <th>MIX</th>
+    </tr></thead>
+    <tbody>${tblRows}</tbody>
+    <tfoot><tr class="total-row" style="border-top:2px solid rgba(201,168,76,.3);">
+      <td style="font-weight:800;color:var(--gold);letter-spacing:.04em">TOTAL YTD</td>
+      <td style="color:#3B8BD4;font-family:'DM Mono',monospace;text-align:right;font-weight:800">
+        ${rtFilter==='rbf'?'—':tRO.toLocaleString('id-ID')}</td>
+      <td style="color:#E8593C;font-family:'DM Mono',monospace;text-align:right;font-weight:800">
+        ${rtFilter==='ro'?'—':tRBF.toLocaleString('id-ID')}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--teal);text-align:right;font-weight:800">
+        ${tAll.toLocaleString('id-ID')}</td>
+      <td style="font-size:11px;font-weight:700">
+        ${rtFilter==='all'?`${tPRO}% RO · ${tPRBF}% RBF`:'—'}</td>
+    </tr></tfoot>
+  </table></div>`;
+  div.appendChild(tblCard);
+
+  // ── Daily table jika bulan tertentu dipilih ──
+  const curM=BF_SHEET_MAP.find(s=>{
+    const map={ALL:null,JAN:'Jan',FEB:'Feb',MAR:'Mar',APR:'Apr',MEI:'Mei',JUN:'Jun',JUL:'Jul',AUG:'Agt',SEP:'Sep',OKT:'Okt',NOV:'Nov',DES:'Des'};
+    return map[selM]===s.label;
+  });
+  if(curM){
+    const mData=d.months.find(m=>m.label===curM.label);
+    if(mData&&mData.daily.length>0){
+      const dailyCard=document.createElement('div');dailyCard.className='chart-card';
+      let dRows='';
+      const dFiltered=mData.daily.filter(r=>rtFilter==='ro'?r.ro>0:rtFilter==='rbf'?r.rbf>0:r.total>0);
+      // Format tanggal: "1-Mar", "2-Mar" sesuai gambar
+      const mAbbr = curM.label; // Jan, Feb, Mar, dll
+      dFiltered.forEach(r=>{
+        const pRBF = r.total>0 ? Math.round(r.rbf/r.total*100) : 0;
+        const pRO  = 100-pRBF;
+        const dateLabel = r.day + '-' + mAbbr;
+        // Tampil angka kamar langsung (integer), bukan Rupiah
+        const roDisp  = rtFilter==='rbf' ? '—' : r.ro;
+        const rbfDisp = rtFilter==='ro'  ? '—' : r.rbf;
+        dRows+=`<tr>
+          <td style="font-weight:600;color:var(--text)">${dateLabel}</td>
+          <td style="color:#3B8BD4;font-family:'DM Mono',monospace;text-align:right">${roDisp}</td>
+          <td style="color:#E8593C;font-family:'DM Mono',monospace;text-align:right">${rbfDisp}</td>
+          <td style="font-family:'DM Mono',monospace;color:var(--teal);text-align:right;font-weight:700">${r.total}</td>
+          <td style="font-family:'DM Mono',monospace;text-align:right;color:var(--muted)">${r.occ>0?r.occ.toFixed(1)+'%':'—'}</td>
+          <td>${rtFilter==='all'?
+            `<div style="display:flex;align-items:center;gap:6px">
+              <div class="bf-bar-wrap" style="width:60px">
+                <div class="bf-bar-ro" style="width:${pRO}%"></div>
+                <div class="bf-bar-rbf" style="width:${pRBF}%"></div>
+              </div>
+              <span style="font-size:9px;color:var(--dim)">${pRO}%·${pRBF}%</span>
+            </div>` : '—'
+          }</td>
+        </tr>`;
+      });
+      dailyCard.innerHTML=`<div class="chart-title">Detail Harian — ${curM.label}</div>
+      <div class="bf-tbl-wrap"><table class="bf-tbl">
+        <thead><tr style="background:rgba(201,168,76,.08);">
+          <th style="text-align:left;color:var(--gold)">DATE</th>
+          <th style="color:#3B8BD4">TOTAL ROOM ONLY</th>
+          <th style="color:#E8593C">TOTAL ROOM BREAKFAST</th>
+          <th style="color:var(--teal)">TOTAL ROOM</th>
+          <th>OCC%</th>
+          <th>MIX</th>
+        </tr></thead>
+        <tbody>${dRows}</tbody>
+      </table></div>`;
+      div.appendChild(dailyCard);
+    }
+  }
+
+  // ── Render chart setelah DOM ──
+  setTimeout(()=>{
+    const ctx=document.getElementById('bf-chart-ytd');
+    if(!ctx)return;
+    const isDark=!document.body.classList.contains('light-mode');
+    const gridC=isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';
+    const textC=isDark?'#7a7570':'#5a5650';
+    const labels=activeMonths.map(m=>m.label);
+    const roArr=activeMonths.map(m=>m.ro);
+    const rbfArr=activeMonths.map(m=>m.rbf);
+    const c=new Chart(ctx,{
+      type:'bar',
+      data:{labels,datasets:[
+        {label:'Room Only', data:roArr, backgroundColor:'#3B8BD4', stack:'s'},
+        {label:'Room Breakfast', data:rbfArr, backgroundColor:'#E8593C', stack:'s'},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{stacked:true,grid:{color:gridC},ticks:{color:textC,font:{size:11}}},
+          y:{stacked:true,grid:{color:gridC},ticks:{color:textC,font:{size:11}}}
+        }}
+    });
+    _charts['bf-ytd']=c;
+  },80);
+
+  return div;
+}
+
+function _bfLoad(file){
+  if(!file.name.match(/\.(xlsx|xls)$/i)){
+    const el=document.getElementById('bf-err');if(el)el.textContent='File harus .xlsx atau .xls';return;
+  }
+  const rdr=new FileReader();
+  rdr.onload=e=>{
+    try{
+      _bfData=parseBreakfastExcel(e.target.result);
+      render();
+      toast('✓ Data Breakfast berhasil dimuat');
+    }catch(ex){
+      const el=document.getElementById('bf-err');
+      if(el)el.textContent='Gagal baca file: '+ex.message;
+    }
+  };
+  rdr.onerror=()=>{const el=document.getElementById('bf-err');if(el)el.textContent='Gagal baca file.';};
+  rdr.readAsArrayBuffer(file);
+}
+
+function _bfNoDataPlaceholder(){
+  const d=document.createElement('div');d.className='chart-card';
+  d.innerHTML=`<div class="bf-no-data">
+    <div style="font-size:32px;margin-bottom:12px">📊</div>
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Belum ada data Room Type</div>
+    <div style="font-size:12px;color:var(--muted)">Upload file <strong>DATA_GUEST_DAILY_BREAKFAST_2026.xlsx</strong> di atas<br>untuk melihat breakdown Room Only vs Room Breakfast</div>
+  </div>`;
+  return d;
 }
 
 // ── INIT ──
