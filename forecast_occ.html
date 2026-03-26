@@ -213,8 +213,9 @@ body.light-mode .fct-tbl tr:hover td{background:rgba(0,0,0,.02);}
 
 
 /* ── REVENUE HERO CARDS ── */
-.rev-hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
-@media(max-width:900px){.rev-hero-grid{grid-template-columns:1fr;}}
+.rev-hero-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+@media(max-width:1100px){.rev-hero-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.rev-hero-grid{grid-template-columns:1fr;}}
 .rev-hero-card{background:var(--card);border:1px solid var(--border);border-radius:18px;
   padding:24px 26px;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s;}
 .rev-hero-card:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.2);}
@@ -222,6 +223,35 @@ body.light-mode .fct-tbl tr:hover td{background:rgba(0,0,0,.02);}
 .rev-hero-card.room::before{background:linear-gradient(90deg,var(--gold),var(--gold2));}
 .rev-hero-card.fnb::before{background:linear-gradient(90deg,var(--orange),#fed7aa);}
 .rev-hero-card.total::before{background:linear-gradient(90deg,var(--teal),#5eead4);}
+.rev-hero-card.onhand::before{background:linear-gradient(90deg,var(--purple),#c4b5fd);}
+/* ── ON-HAND TOOLTIP ── */
+.rhc-tooltip-wrap{position:relative;}
+.rhc-tooltip-btn{display:inline-flex;align-items:center;gap:4px;cursor:pointer;
+  font-size:9px;color:var(--purple);font-weight:700;letter-spacing:.05em;
+  background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);
+  border-radius:6px;padding:3px 8px;margin-top:8px;transition:all .2s;}
+.rhc-tooltip-btn:hover{background:rgba(167,139,250,.2);}
+.rhc-tooltip-popup{
+  display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:500;
+  background:var(--surface);border:1px solid rgba(167,139,250,.3);
+  border-radius:12px;padding:12px 14px;min-width:280px;max-width:340px;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  font-size:11px;line-height:1.6;
+}
+.rhc-tooltip-wrap:hover .rhc-tooltip-popup,
+.rhc-tooltip-btn:focus + .rhc-tooltip-popup{display:block;}
+.rhc-tp-hdr{font-size:9px;font-weight:800;color:var(--purple);letter-spacing:.12em;
+  text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;
+  border-bottom:1px solid rgba(167,139,250,.2);}
+.rhc-tp-row{display:grid;grid-template-columns:90px 1fr 1fr;gap:4px 8px;
+  padding:3px 0;border-bottom:1px solid rgba(255,255,255,.03);}
+.rhc-tp-row:last-child{border-bottom:none;}
+.rhc-tp-date{color:var(--muted);font-size:10px;}
+.rhc-tp-rr{color:var(--gold);font-family:'DM Mono',monospace;font-size:10px;font-weight:700;}
+.rhc-tp-bkf{color:var(--orange);font-family:'DM Mono',monospace;font-size:10px;}
+.rhc-tp-total{grid-template-columns:1fr 1fr 1fr;
+  font-weight:800;padding-top:6px;border-top:1px solid rgba(167,139,250,.25)!important;
+  margin-top:4px;color:var(--text);}
 .rev-hero-card::after{content:attr(data-icon);position:absolute;right:16px;top:50%;
   transform:translateY(-50%);font-size:56px;opacity:.07;pointer-events:none;}
 .rhc-lbl{font-size:9px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;font-weight:700;}
@@ -889,6 +919,70 @@ function buildRevenueHero(){
           </div>
         </div>
       </div>
+
+      <!-- ON-HAND FORECAST: sisa hari dari tanggal hari ini -->
+      ${(()=>{
+        // Gunakan tanggal hari ini (bukan reportDate) sebagai titik mulai
+        const _now = new Date();
+        const _todayStr = ('0'+_now.getDate()).slice(-2)+'/'+('0'+(_now.getMonth()+1)).slice(-2)+'/'+String(_now.getFullYear()).slice(-2);
+        const todayIdx = r.rows.findIndex(x=>x.dateStr===_todayStr);
+        // Fallback: jika hari ini tidak ada di rows, cari hari pertama yang >= hari ini
+        const startIdx = todayIdx>=0 ? todayIdx
+          : r.rows.findIndex(x=>x.date>=_now) >= 0
+            ? r.rows.findIndex(x=>x.date>=_now)
+            : 0;
+        const sisaRows = r.rows.slice(startIdx);
+        const hasOH    = hasActual && sisaRows.length > 0;
+        const ohRoomRev = sisaRows.reduce((s,x)=>s+x.room_revenue,0);
+        const ohBkf     = sisaRows.reduce((s,x)=>s+x.breakfast,0);
+        const ohTotal   = ohRoomRev + ohBkf;
+        const sisaDays  = sisaRows.length;
+
+        // Build tooltip rows
+        const tipRows = sisaRows.map(x=>`
+          <div class="rhc-tp-row">
+            <span class="rhc-tp-date">${x.weekday} ${x.dateStr.slice(0,5)}</span>
+            <span class="rhc-tp-rr">${x.room_revenue>0?fmtRp(getRev(x.room_revenue)):'—'}</span>
+            <span class="rhc-tp-bkf">${x.breakfast>0?fmtRp(getRev(x.breakfast)):'—'}</span>
+          </div>`).join('');
+
+        return `<div class="rev-hero-card onhand" data-icon="📋" style="overflow:visible;">
+          <div class="rhc-lbl">Forecast On-Hand</div>
+          <div class="rhc-val" style="color:var(--purple);font-size:${hasOH?'28px':'36px'};${!hasOH?'opacity:.35':''}">
+            ${hasOH ? fmtRp(getRev(ohTotal)) : 'Rp —'}
+          </div>
+          <div class="rhc-sub">${hasOH ? fmtFull(getRev(ohTotal)) : '<span style="color:var(--red);font-size:10px">Belum ada data revenue</span>'}</div>
+          ${hasOH ? `<div class="rhc-breakdown" style="margin-top:10px;">
+            <div class="rhc-item">🛏 Room Rev: <strong style="color:var(--gold)">${fmtRp(getRev(ohRoomRev))}</strong></div>
+            <div class="rhc-item">🍳 Breakfast: <strong style="color:var(--orange)">${fmtRp(getRev(ohBkf))}</strong></div>
+            <div class="rhc-item">📅 Sisa: <strong>${sisaDays} hari</strong></div>
+          </div>
+          <div class="rhc-tooltip-wrap" style="margin-top:10px;">
+            <div class="rhc-tooltip-btn">📋 Detail ${sisaDays} hari ▾</div>
+            <div class="rhc-tooltip-popup">
+              <div class="rhc-tp-hdr">Forecast On-Hand — ${_todayStr} s/d ${r.periodTo}</div>
+              <div class="rhc-tp-row" style="font-size:9px;color:var(--dim);font-weight:800;border-bottom:1px solid rgba(255,255,255,.08)!important;">
+                <span>TANGGAL</span><span style="color:var(--gold)">ROOM REV</span><span style="color:var(--orange)">BREAKFAST</span>
+              </div>
+              ${tipRows}
+              <div class="rhc-tp-row rhc-tp-total">
+                <span style="color:var(--purple);font-size:10px">TOTAL</span>
+                <span class="rhc-tp-rr" style="font-size:11px">${fmtRp(getRev(ohRoomRev))}</span>
+                <span class="rhc-tp-bkf" style="font-size:11px">${fmtRp(getRev(ohBkf))}</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:4px;">
+              <span>On-Hand Forecast</span><span>${sisaDays} hari tersisa</span>
+            </div>
+            <div style="height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${totRev>0?Math.min(ohTotal/totRev*100,100).toFixed(0):0}%;background:var(--purple);border-radius:3px;transition:width .9s ease;"></div>
+            </div>
+          </div>` : ''}
+        </div>`;
+      })()}
+
     </div>
 
     <!-- DAILY ARR TABLE — hanya tampil jika ada data -->
