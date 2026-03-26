@@ -1619,12 +1619,14 @@ function kpiCards(D){
   // Achievement % OCC vs budget
   const occAch   = pct(occ, occB);
 
-  // ── PTER CALCULATION ──────────────────────────────
-  const mk = Object.keys(_data||{}).find(k=>_data[k]===D) || latest();
-  const pterBud = _PTER_BUD[mk] || 121588149;
-  const pterPct = mta > 0 ? (pterBud / mta * 100) : 0;
-  const pterCls = pterPct <= 20 ? 'green' : pterPct <= 30 ? 'amber' : 'red';
-  const pterCardCls = pterPct <= 20 ? 'ok' : pterPct <= 30 ? 'orange' : 'red';
+  // ── PTER CALCULATION (Actual PTER berdasarkan hari berjalan) ──────
+  const mk           = Object.keys(_data||{}).find(k=>_data[k]===D) || latest();
+  const pterBud      = _PTER_BUD[mk] || 0;
+  const pterHarian   = daysInMo > 0 ? pterBud / daysInMo : 0;   // Budget PTER ÷ total hari bulan
+  const actualPterRp = pterHarian * elapsed;                      // × hari berjalan (dari Excel)
+  const pterPct      = mta > 0 ? (actualPterRp / mta * 100) : 0; // ÷ Actual Revenue MTD × 100
+  const pterCls      = pterPct <= 20 ? 'green' : pterPct <= 30 ? 'amber' : 'red';
+  const pterCardCls  = pterPct <= 20 ? 'ok' : pterPct <= 30 ? 'orange' : 'red';
 
   div.innerHTML=`
     <div class="sec-hdr" style="margin-top:20px;">
@@ -1731,13 +1733,14 @@ function kpiCards(D){
         </span>
       </div>`:''}
 
-      <!-- Card HR PTER: Actual Revenue MTD vs Budget PTER -->
+      <!-- Card HR PTER: Actual PTER hari berjalan vs Actual Revenue MTD -->
       <div class="kpi-gap-card purple">
-        <div class="gap-lbl">👥 HR · PTER % Actual vs Budget</div>
+        <div class="gap-lbl">👥 HR · PTER % (Actual ${elapsed} hari)</div>
         <div class="gap-val ${pterCls}">${mta>0?pterPct.toFixed(2)+'%':'—'}</div>
         <div class="gap-sub">
-          Budget PTER &nbsp;: ${fmtFull(pterBud)}<br>
-          Actual MTD &nbsp;&nbsp;: ${fmtFull(mta)}
+          Actual PTER &nbsp;: ${fmtFull(Math.round(actualPterRp))}<br>
+          <span style="font-size:9px;color:var(--dim)">(${fmtRp(pterHarian)}/hari × ${elapsed} hari)</span><br>
+          Actual Rev MTD : ${fmtFull(mta)}
         </div>
         <span class="gap-badge ${pterCls}">
           ${mta<=0?'— Belum ada data':pterPct<=20?'✓ Sangat Efisien':pterPct<=30?'⚠ Perhatian':'✗ Di Atas Wajar'}
@@ -3148,15 +3151,16 @@ function _estCompute(){
           style="width:${Math.min(totalAch,100)}%;background:${totalAch>=100?'var(--green)':'var(--amber)'}"></div></div>
       </div>
       ${(()=>{
-        const _pterBudEst=(_PTER_BUD[_estMonth]||121588149);
-        const _actMtdEst=getRev(totalAct);
-        const _pterPctEst=_actMtdEst>0?(_pterBudEst/_actMtdEst*100):0;
-        const _pterClsEst=_pterPctEst<=20?'green':_pterPctEst<=30?'amber':'red';
+        const _pterBudEst    = _PTER_BUD[_estMonth] || 0;
+        // PTER % = Budget PTER bulan (full) ÷ Full Month Projection × 100
+        const _fmpEst        = getRev(totalProj);
+        const _pterPctEst    = _fmpEst > 0 ? (_pterBudEst / _fmpEst * 100) : 0;
+        const _pterClsEst    = _pterPctEst <= 20 ? 'green' : _pterPctEst <= 30 ? 'amber' : 'red';
         return `<div class="est-kpi" style="border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.04);">
           <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--purple),#c4b5fd);border-radius:14px 14px 0 0;"></div>
           <div class="est-kpi-lbl" style="color:#a78bfa;">👥 HR · PTER %</div>
-          <div class="est-kpi-val" style="color:#a78bfa;">${_actMtdEst>0?_pterPctEst.toFixed(2)+'%':'—'}</div>
-          <div class="est-kpi-sub">Budget PTER: ${fmtFull(_pterBudEst)}<br>Actual MTD: ${fmtFull(_actMtdEst)}</div>
+          <div class="est-kpi-val" style="color:${_pterPctEst<=20?'var(--green)':_pterPctEst<=30?'var(--amber)':'var(--red)'};">${_fmpEst>0?_pterPctEst.toFixed(2)+'%':'—'}</div>
+          <div class="est-kpi-sub">Budget PTER: ${fmtFull(_pterBudEst)}<br>Full Month Proj: ${fmtRp(_fmpEst)}</div>
           <div class="est-kpi-bar"><div class="est-kpi-bar-fill"
             style="width:${Math.min(_pterPctEst,100)}%;background:${_pterPctEst<=20?'var(--green)':_pterPctEst<=30?'var(--amber)':'var(--red)'}"></div></div>
         </div>`;
