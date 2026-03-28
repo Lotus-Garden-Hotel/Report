@@ -2917,7 +2917,8 @@ function estParseBanquet(){
       events.forEach(ev=>{
         if(ev.status==='DONE'||ev.status==='CANCEL') return;
         totalEvents++;
-        const rev=(ev.pax||0)*(ev.price||0);
+        // Gunakan ev.revenue (sudah NETT dari banquet report) → fallback pax×price jika tidak ada
+        const rev = ev.revenue || (ev.pax||0)*(ev.price||0);
         if(ev.status==='CONFIRM'){byMonth[key].confirm+=rev;byMonth[key].total+=rev;byMonth[key].count++;}
         else if(ev.status==='TENTATIVE'){byMonth[key].tentative+=rev;byMonth[key].total+=rev;byMonth[key].count++;}
       });
