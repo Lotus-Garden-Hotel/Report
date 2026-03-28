@@ -3152,16 +3152,35 @@ function _estCompute(){
     return srcLabel[line.src];
   }
 
+  // ── Active projection (manual override or auto) ──
+  const _effProj   = _estManualProj !== null ? _estManualProj : getRev(totalProj);
+  const _isManual  = _estManualProj !== null;
+  const _effBud    = getRev(fullBud);
+  const _effAch    = _effBud > 0 ? (_effProj / _effBud * 100) : 0;
+  const _effGap    = _effProj - _effBud;
+  const _effGapAbs = Math.abs(_effGap);
+  const _effIsOver = _effGap >= 0;
+  const _effNeeded = (!_effIsOver && remain > 0) ? _effGapAbs / remain : 0;
+
   // ── Build HTML ──
   const sections={room:'🛏 Room',fnb:'🍽 F&B',banquet:'🎪 Banquet',other:'📦 Other Revenue'};
   let lastSection='';
   let tableRows='';
 
+  // Faktor skala proporsional saat manual override aktif
+  // _effProj dalam Nett, totalProj juga Nett → faktor = _effProj / getRev(totalProj)
+  const _autoTotalNett = getRev(totalProj);
+  const _scaleFactor   = (_isManual && _autoTotalNett > 0) ? (_effProj / _autoTotalNett) : 1;
+
   LINES.forEach(line=>{
     const act=ACT[line.key], est=EST[line.key], proj=PROJ[line.key];
+    // Proj manual = proj per baris × faktor skala
+    const projDisplay = _isManual ? proj * _scaleFactor : proj;
+    // Est manual = projDisplay − act (sisa setelah actual)
+    const estDisplay  = _isManual ? Math.max(projDisplay - act, 0) : est;
     // Budget per line — langsung dari Excel col G per revenue line
     const lineBud=BUD[line.key]||0;
-    const achPct=lineBud>0?Math.round(proj/lineBud*100):0;
+    const achPct=lineBud>0?Math.round(projDisplay/lineBud*100):0;
 
     // Section header
     if(line.section!==lastSection){
@@ -3169,12 +3188,12 @@ function _estCompute(){
       tableRows+=`<tr class="est-section"><td colspan="7">${sections[line.section]||line.section}</td></tr>`;
     }
 
-    tableRows+=`<tr>
+    tableRows+=`<tr${_isManual?' style="background:rgba(201,168,76,.02)"':''}>
       <td>${line.label}</td>
-      <td>${getSrcLabel(line)}</td>
+      <td>${getSrcLabel(line)}${_isManual?'<span style="font-size:8px;color:var(--gold);margin-left:4px">✏️</span>':''}</td>
       <td class="est-act">${fmtRp(getRev(act))}</td>
-      <td class="est-est">${est>0?fmtRp(getRev(est)):'<span style="color:var(--dim)">—</span>'}</td>
-      <td class="est-proj" style="font-size:14px">${fmtRp(getRev(proj))}</td>
+      <td class="est-est">${estDisplay>0?fmtRp(getRev(estDisplay)):'<span style="color:var(--dim)">—</span>'}</td>
+      <td class="est-proj" style="font-size:14px">${fmtRp(getRev(projDisplay))}</td>
       <td class="est-bud">${lineBud>0?fmtRp(getRev(lineBud)):'<span style="color:var(--dim)">—</span>'}</td>
       <td class="est-ach"><span class="ach-e ${_achCls2(achPct)}">${achPct>0?achPct+'%':'—'}</span></td>
     </tr>`;
@@ -3188,15 +3207,7 @@ function _estCompute(){
   const fctInfo=_estForecast?'✓':'—';
   const bnqInfo=_estBanquet?'✓':'—';
 
-  // ── Active projection (manual override or auto) ──
-  const _effProj = _estManualProj !== null ? _estManualProj : getRev(totalProj);
-  const _isManual = _estManualProj !== null;
-  const _effBud  = getRev(fullBud);
-  const _effAch  = _effBud > 0 ? (_effProj / _effBud * 100) : 0;
-  const _effGap  = _effProj - _effBud;
-  const _effGapAbs = Math.abs(_effGap);
-  const _effIsOver = _effGap >= 0;
-  const _effNeeded = (!_effIsOver && remain > 0) ? _effGapAbs / remain : 0;
+
 
   result.innerHTML=`
     <!-- KPI CARDS ROW 1 -->
@@ -3359,14 +3370,14 @@ function _estCompute(){
           ${tableRows}
         </tbody>
         <tfoot>
-          <tr class="est-total">
-            <td>TOTAL REVENUE</td>
+          <tr class="est-total" style="${_isManual?'background:rgba(201,168,76,.06);border-top:2px solid rgba(201,168,76,.3);':''}">
+            <td>TOTAL REVENUE${_isManual?' <span style="font-size:9px;color:var(--gold)">✏️ MANUAL</span>':''}</td>
             <td></td>
             <td class="est-act" style="font-size:14px">${fmtRp(getRev(totalAct))}</td>
-            <td class="est-est" style="font-size:14px">${fmtRp(getRev(totalEst))}</td>
-            <td class="est-proj" style="font-size:16px">${fmtRp(getRev(totalProj))}</td>
+            <td class="est-est" style="font-size:14px">${fmtRp(Math.max(_effProj - getRev(totalAct), 0))}</td>
+            <td class="est-proj" style="font-size:16px;${_isManual?'color:var(--gold2)':''}">${fmtRp(_effProj)}</td>
             <td class="est-bud" style="font-size:13px">${fmtRp(getRev(fullBud))}</td>
-            <td class="est-ach"><span class="ach-e ${_achCls2(totalAch)}" style="font-size:13px">${totalAch}%</span></td>
+            <td class="est-ach"><span class="ach-e ${_achCls2(Math.round(_effAch))}" style="font-size:13px">${Math.round(_effAch)}%</span></td>
           </tr>
         </tfoot>
       </table>
