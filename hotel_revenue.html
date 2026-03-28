@@ -700,6 +700,44 @@ body.light-mode .rekap-tbl tr.rekap-total td{background:rgba(201,168,76,.1);}
 .est-kpi-sub{font-size:10px;color:var(--muted);margin-top:4px;font-weight:500;}
 .est-kpi-bar{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:8px;overflow:hidden;}
 .est-kpi-bar-fill{height:100%;border-radius:2px;transition:width .8s ease;}
+/* ── Est Gap Row ── */
+.est-gap-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+@media(max-width:900px){.est-gap-row{grid-template-columns:1fr 1fr;}}
+.est-gap-card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:16px 18px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;}
+.est-gap-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.3);}
+.est-gap-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.est-gap-card.ok::before{background:linear-gradient(90deg,var(--green),#6ee7b7);}
+.est-gap-card.warn::before{background:linear-gradient(90deg,var(--amber),#fbbf24);}
+.est-gap-card.bad::before{background:linear-gradient(90deg,var(--red),#f87171);}
+.est-gap-lbl{font-size:9px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px;font-weight:700;}
+.est-gap-val{font-size:26px;font-weight:800;line-height:1.1;font-family:'DM Mono',monospace;margin-bottom:4px;}
+.est-gap-sub{font-size:10px;color:var(--muted);line-height:1.5;}
+.est-gap-badge{display:inline-block;font-size:9px;font-weight:700;padding:3px 10px;
+  border-radius:20px;margin-top:6px;letter-spacing:.04em;}
+.est-gap-badge.ok{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.25);}
+.est-gap-badge.warn{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.25);}
+.est-gap-badge.bad{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+/* ── Manual Override ── */
+.est-manual-wrap{margin-top:8px;}
+.est-manual-btn{font-size:9px;font-weight:700;padding:3px 9px;border-radius:6px;cursor:pointer;
+  background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);color:var(--gold);
+  transition:all .2s;letter-spacing:.04em;}
+.est-manual-btn:hover{background:rgba(201,168,76,.22);}
+.est-manual-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;
+  background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3);
+  letter-spacing:.04em;margin-left:6px;}
+.est-manual-input-row{display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;}
+.est-manual-input{background:var(--surface);border:1px solid rgba(201,168,76,.35);
+  border-radius:8px;padding:5px 10px;font-size:12px;font-family:'DM Mono',monospace;
+  color:var(--text);width:160px;outline:none;transition:border-color .2s;}
+.est-manual-input:focus{border-color:var(--gold);}
+.est-manual-apply{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;
+  background:var(--gold);border:none;color:#000;transition:all .2s;}
+.est-manual-apply:hover{background:var(--gold2);}
+.est-manual-reset{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;
+  background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.25);color:#f87171;transition:all .2s;}
+.est-manual-reset:hover{background:rgba(239,68,68,.25);}
 /* Estimation table */
 .est-tbl-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--border);}
 table.est-tbl{width:100%;border-collapse:collapse;font-size:13px;}
@@ -2575,6 +2613,34 @@ let _estFctMode  = 'gross'; // 'gross'=raw txt, 'nett'=÷1.21
 let _estMethod   = 'blend';  // 'wma'=Weighted Moving Avg, 'blend'=Budget-Based Blending
 let _estBanquet  = null;   // parsed banquet onhand JSON
 let _estMonth    = null;   // selected month key e.g. 'MAR'
+let _estManualProj = null; // Manual override Full Month Projection (dalam Nett Rp)
+
+function estOpenManual(autoVal){
+  _estManualProj = autoVal;
+  _estRender();
+  setTimeout(()=>{
+    const inp=document.getElementById('est-manual-inp');
+    if(inp){inp.focus();inp.select();}
+  },50);
+}
+function estApplyManual(){
+  const inp=document.getElementById('est-manual-inp');
+  if(!inp) return;
+  const raw=inp.value.replace(/[^0-9]/g,'');
+  const val=parseFloat(raw);
+  if(!isNaN(val)&&val>0){
+    _estManualProj=val;
+    _estRender();
+  }
+}
+function estResetManual(){
+  _estManualProj=null;
+  _estRender();
+}
+function _estRender(){
+  // Re-run compute to refresh cards with new _estManualProj value
+  _estCompute();
+}
 
 // ── Helpers ──
 // Konversi nilai dari txt PMS (default Gross) → Nett jika mode nett
@@ -2718,8 +2784,8 @@ function buildEstimasi(){
     // Sync toggle button state
     estSetFctMode(_estFctMode);
     estSetMethod(_estMethod);
-    // Auto-compute if data ready
-    if(_estForecast||_estBanquet) _estCompute();
+    // Always compute - _estCompute bisa jalan tanpa TXT/JSON (pakai metode fallback)
+    _estCompute();
   },50);
 
   return div;
@@ -2727,6 +2793,7 @@ function buildEstimasi(){
 
 function estSetMethod(m){
   _estMethod=m;
+  _estManualProj=null; // reset manual override saat metode berganti
   const bb=document.getElementById('est-btn-blend');
   const bw=document.getElementById('est-btn-wma');
   const ba=document.getElementById('est-btn-avrday');
@@ -2752,6 +2819,7 @@ function estSetFctMode(mode){
 
 function estSetMonth(m){
   _estMonth=m;
+  _estManualProj=null; // reset manual override saat bulan berganti
   // Sync topbar sel-month supaya konsisten
   const topSel = document.getElementById('sel-month');
   if(topSel) topSel.value=m;
@@ -3120,15 +3188,37 @@ function _estCompute(){
   const fctInfo=_estForecast?'✓':'—';
   const bnqInfo=_estBanquet?'✓':'—';
 
+  // ── Active projection (manual override or auto) ──
+  const _effProj = _estManualProj !== null ? _estManualProj : getRev(totalProj);
+  const _isManual = _estManualProj !== null;
+  const _effBud  = getRev(fullBud);
+  const _effAch  = _effBud > 0 ? (_effProj / _effBud * 100) : 0;
+  const _effGap  = _effProj - _effBud;
+  const _effGapAbs = Math.abs(_effGap);
+  const _effIsOver = _effGap >= 0;
+  const _effNeeded = (!_effIsOver && remain > 0) ? _effGapAbs / remain : 0;
+
   result.innerHTML=`
-    <!-- KPI CARDS -->
+    <!-- KPI CARDS ROW 1 -->
     <div class="est-kpi-row fade2">
-      <div class="est-kpi gold">
-        <div class="est-kpi-lbl">Full Month Projection</div>
-        <div class="est-kpi-val gold">${fmtRp(getRev(totalProj))}</div>
-        <div class="est-kpi-sub">${fmtFull(getRev(totalProj))}</div>
+      <div class="est-kpi gold" style="${_isManual?'border-color:rgba(201,168,76,.5);background:rgba(201,168,76,.06);':''}">
+        <div class="est-kpi-lbl">Full Month Projection ${_isManual?'<span class="est-manual-badge">✏️ MANUAL</span>':''}</div>
+        <div class="est-kpi-val gold">${fmtRp(_effProj)}</div>
+        <div class="est-kpi-sub">${_isManual?'<span style="color:var(--dim);font-size:9px">Auto: '+fmtRp(getRev(totalProj))+'</span>':fmtFull(getRev(totalProj))}</div>
         <div class="est-kpi-bar"><div class="est-kpi-bar-fill"
-          style="width:${Math.min(totalAch,100)}%;background:${totalAch>=100?'var(--green)':'var(--gold)'}"></div></div>
+          style="width:${Math.min(_effAch,100)}%;background:${_effAch>=100?'var(--green)':'var(--gold)'}"></div></div>
+        <div class="est-manual-wrap">
+          ${_isManual
+            ? '<div class="est-manual-input-row">'
+              + '<input class="est-manual-input" id="est-manual-inp" type="text"'
+              + ' value="'+Math.round(_effProj).toLocaleString('id-ID')+'"'
+              + ' placeholder="Masukkan nilai Rp">'
+              + '<button class="est-manual-apply" onclick="estApplyManual()">✓ Terapkan</button>'
+              + '<button class="est-manual-reset" onclick="estResetManual()">✗ Reset</button>'
+              + '</div>'
+            : '<button class="est-manual-btn" onclick="estOpenManual('+getRev(totalProj)+')">✏️ Override Manual</button>'
+          }
+        </div>
       </div>
       <div class="est-kpi teal">
         <div class="est-kpi-lbl">Actual MTD</div>
@@ -3137,35 +3227,85 @@ function _estCompute(){
         <div class="est-kpi-bar"><div class="est-kpi-bar-fill"
           style="width:${Math.min(totalActAch,100)}%;background:var(--teal)"></div></div>
       </div>
-      <div class="est-kpi purple">
-        <div class="est-kpi-lbl">Estimasi Sisa Hari</div>
-        <div class="est-kpi-val purple">${fmtRp(getRev(totalEst))}</div>
-        <div class="est-kpi-sub">${remain} hari · Forecast: ${fctInfo} · Onhand: ${bnqInfo}</div>
+      <div class="est-kpi purple" style="${_isManual?'border-color:rgba(201,168,76,.3);':''}">
+        <div class="est-kpi-lbl">Estimasi Sisa Hari${_isManual?' <span style="font-size:8px;color:var(--gold)">✏️</span>':''}</div>
+        <div class="est-kpi-val purple">${fmtRp(_isManual ? Math.max(_effProj - getRev(totalAct), 0) : getRev(totalEst))}</div>
+        <div class="est-kpi-sub">${remain} hari · Forecast: ${fctInfo} · Onhand: ${bnqInfo}${_isManual?'<br><span style="font-size:9px;color:var(--dim)">Manual: Proj − Actual MTD</span>':''}</div>
         <div class="est-kpi-bar"><div class="est-kpi-bar-fill"
-          style="width:${totalProj>0?Math.round(totalEst/totalProj*100):0}%;background:var(--purple)"></div></div>
+          style="width:${_isManual ? (_effProj>0?Math.min(Math.max(_effProj-getRev(totalAct),0)/_effProj*100,100).toFixed(0):0) : (totalProj>0?Math.round(totalEst/totalProj*100):0)}%;background:var(--purple)"></div></div>
       </div>
-      <div class="est-kpi green">
-        <div class="est-kpi-lbl">vs Full Month Budget</div>
-        <div class="est-kpi-val ${totalAch>=100?'green':'gold'}">${totalAch}%</div>
-        <div class="est-kpi-sub">Budget: ${fmtRp(fullBud)}</div>
+      <div class="est-kpi ${_effAch>=100?'green':'green'}">
+        <div class="est-kpi-lbl">vs Full Month Budget${_isManual?' <span style="font-size:8px;color:var(--gold)">✏️</span>':''}</div>
+        <div class="est-kpi-val ${_effAch>=100?'green':'gold'}">${_effAch.toFixed(0)}%</div>
+        <div class="est-kpi-sub">Budget: ${fmtRp(_effBud)}<br>${_isManual?'<span style="font-size:9px;color:var(--dim)">Auto: '+totalAch+'%</span>':''}</div>
         <div class="est-kpi-bar"><div class="est-kpi-bar-fill"
-          style="width:${Math.min(totalAch,100)}%;background:${totalAch>=100?'var(--green)':'var(--amber)'}"></div></div>
+          style="width:${Math.min(_effAch,100)}%;background:${_effAch>=100?'var(--green)':'var(--amber)'}"></div></div>
       </div>
       ${(()=>{
         const _pterBudEst    = _PTER_BUD[_estMonth] || 0;
         // PTER % = Budget PTER bulan (full) ÷ Full Month Projection × 100
-        const _fmpEst        = getRev(totalProj);
+        // _effProj sudah handle manual override
+        const _fmpEst        = _effProj;
         const _pterPctEst    = _fmpEst > 0 ? (_pterBudEst / _fmpEst * 100) : 0;
         const _pterClsEst    = _pterPctEst <= 20 ? 'green' : _pterPctEst <= 30 ? 'amber' : 'red';
         return `<div class="est-kpi" style="border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.04);">
           <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--purple),#c4b5fd);border-radius:14px 14px 0 0;"></div>
-          <div class="est-kpi-lbl" style="color:#a78bfa;">👥 HR · PTER %</div>
+          <div class="est-kpi-lbl" style="color:#a78bfa;">👥 HR · PTER %${_isManual?' <span style="font-size:8px;color:var(--gold)">✏️</span>':''}</div>
           <div class="est-kpi-val" style="color:${_pterPctEst<=20?'var(--green)':_pterPctEst<=30?'var(--amber)':'var(--red)'};">${_fmpEst>0?_pterPctEst.toFixed(2)+'%':'—'}</div>
-          <div class="est-kpi-sub">Budget PTER: ${fmtFull(_pterBudEst)}<br>Full Month Proj: ${fmtRp(_fmpEst)}</div>
+          <div class="est-kpi-sub">Budget PTER: ${fmtFull(_pterBudEst)}<br>Full Month Proj: ${fmtRp(_fmpEst)}${_isManual?'<br><span style="font-size:9px;color:var(--dim)">✏️ nilai manual</span>':''}</div>
           <div class="est-kpi-bar"><div class="est-kpi-bar-fill"
             style="width:${Math.min(_pterPctEst,100)}%;background:${_pterPctEst<=20?'var(--green)':_pterPctEst<=30?'var(--amber)':'var(--red)'}"></div></div>
         </div>`;
       })()}
+    </div>
+
+    <!-- GAP ANALYSIS ROW -->
+    <div class="est-gap-row fade2">
+
+      <!-- Card 1: Est. Actual vs Budget % -->
+      <div class="est-gap-card ${_effIsOver?'ok':'warn'}">
+        <div class="est-gap-lbl">📊 Est. Actual vs Budget %</div>
+        <div class="est-gap-val ${_effIsOver?'green':'amber'}">${_effAch.toFixed(2)}%</div>
+        <div class="est-gap-sub">
+          Full Month Proj &nbsp;: ${fmtFull(Math.round(_effProj))}<br>
+          Full Month Budget : ${fmtFull(Math.round(_effBud))}
+        </div>
+        <span class="est-gap-badge ${_effIsOver?'ok':'warn'}">
+          ${_effIsOver?'▲ Melampaui budget':'▼ Di bawah budget'}
+        </span>
+        <div style="height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:8px;overflow:hidden;">
+          <div style="height:100%;width:${Math.min(_effAch,100)}%;background:${_effIsOver?'var(--green)':'var(--amber)'};border-radius:2px;transition:width .8s"></div>
+        </div>
+      </div>
+
+      <!-- Card 2: Est. Variance / GAP -->
+      <div class="est-gap-card ${_effIsOver?'ok':'bad'}">
+        <div class="est-gap-lbl">📉 Est. Variance / GAP</div>
+        <div class="est-gap-val ${_effIsOver?'green':'red'}">${_effIsOver?'+':'−'} ${fmtRp(_effGapAbs)}</div>
+        <div class="est-gap-sub">
+          ${_effIsOver
+            ? 'Surplus proyeksi di atas budget<br>'+fmtFull(Math.round(_effGapAbs))+' di atas target'
+            : 'Kekurangan dari budget<br>'+fmtFull(Math.round(_effGapAbs))+' harus dikejar'}
+        </div>
+        <span class="est-gap-badge ${_effIsOver?'ok':'bad'}">
+          ${_effIsOver?'✓ Proyeksi melampaui':'✗ Proyeksi belum tercapai'}
+        </span>
+      </div>
+
+      <!-- Card 3: Est. Kebutuhan Revenue/Hari -->
+      <div class="est-gap-card ${_effIsOver?'ok':remain>0?'bad':'warn'}">
+        <div class="est-gap-lbl">📅 Est. Kebutuhan Revenue/Hari</div>
+        ${_effIsOver
+          ? '<div class="est-gap-val green">—</div><div class="est-gap-sub">Proyeksi sudah melampaui budget<br>Tidak perlu target tambahan</div><span class="est-gap-badge ok">✓ Target tercapai</span>'
+          : remain > 0
+            ? '<div class="est-gap-val red">'+fmtRp(Math.round(_effNeeded))+'</div>'
+              +'<div class="est-gap-sub">Per hari dari <strong>'+remain+' sisa hari</strong><br>Total kurang: '+fmtFull(Math.round(_effGapAbs))+'</div>'
+              +'<span class="est-gap-badge bad">Target harian tambahan</span>'
+            : '<div class="est-gap-val amber">'+fmtRp(_effGapAbs)+'</div>'
+              +'<div class="est-gap-sub">Bulan sudah selesai<br>GAP final: '+fmtFull(Math.round(_effGapAbs))+'</div>'
+              +'<span class="est-gap-badge warn">Bulan berakhir</span>'
+        }
+      </div>
     </div>
 
     <!-- ESTIMATION TABLE -->
