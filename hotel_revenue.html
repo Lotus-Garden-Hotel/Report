@@ -3051,6 +3051,13 @@ function _estCompute(){
   const useBlend  =(_estMethod==='blend');
   const useAvrDay =(_estMethod==='avrday');
 
+  // ── Guard: bulan sudah selesai → semua EST = 0 ──
+  if(remain===0){
+    ['room_rev','breakfast','restaurant','roomsvc','banquet','laundry','coffee','other']
+      .forEach(k=>{ EST[k]=0; });
+    // Lanjut ke render dengan EST semua 0
+  } else {
+
   // ── AVR/Day helper: Budget − Actual (target minimal capai 100%) ──
   // Untuk line tanpa budget → fallback ke WMA
   function _avrDayEst(key, actKey){
@@ -3110,6 +3117,8 @@ function _estCompute(){
     else if(useBlend)  EST[k]=_blendDaily(ak,k)*remain;
     else               EST[k]=_wmaDaily(ak)*remain;
   });
+
+  } // end of else (remain > 0)
 
   // ── PROJ = ACT + EST (semua Nett) ──
   const PROJ={};
