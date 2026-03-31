@@ -723,8 +723,30 @@ function render(){
 <!-- INDEX RADAR -->
 <div class="stitle">✦ Competitive Index (MPI · ARI · RGI)</div>
 <div class="cc" style="margin-bottom:24px;">
-  <div class="ct">Index vs Market Average — nilai &gt;1.00 berarti di atas rata-rata pasar</div>
-  <div class="cw" style="height:280px;"><canvas id="c-idx"></canvas></div>
+  <div class="ct">Index vs Market Average — nilai &gt;1.00 berarti di atas rata-rata pasar · klik legend untuk sembunyikan hotel</div>
+  <!-- 3 bar chart terpisah: MPI | ARI | RGI -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:4px;">
+    <div>
+      <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;text-align:center;">
+        🎯 MPI — Market Penetration
+      </div>
+      <div style="position:relative;height:220px;"><canvas id="c-mpi"></canvas></div>
+    </div>
+    <div>
+      <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;text-align:center;">
+        💰 ARI — Avg Rate Index
+      </div>
+      <div style="position:relative;height:220px;"><canvas id="c-ari"></canvas></div>
+    </div>
+    <div>
+      <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;text-align:center;">
+        📈 RGI — Revenue Generation
+      </div>
+      <div style="position:relative;height:220px;"><canvas id="c-rgi"></canvas></div>
+    </div>
+  </div>
+  <!-- Legend warna hotel -->
+  <div id="idx-legend" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--border);"></div>
 </div>
 
 <!-- TABLE -->
@@ -777,18 +799,81 @@ function buildCharts(ms,dark=true){
       plugins:{legend:{position:'right',labels:{color:dark?'#9a9090':'#3a3630',font:{size:10},boxWidth:10,padding:10}},
         tooltip:{callbacks:{label:d=>`${d.label}: ${fmt(d.raw)} rm`}}}}});
 
-  // Radar index
-  const ctx4=document.getElementById('c-idx')?.getContext('2d');
-  if(ctx4){
-    const mx=Math.max(...ms.flatMap(h=>[h.mpi||0,h.ari||0,h.rgi||0]),1.5)+.15;
-    charts['c-idx']=new Chart(ctx4,{type:'radar',
-      data:{labels:['MPI (Market Penetration)','ARI (Avg Rate Index)','RGI (Revenue Generation)'],
-        datasets:ms.map((h,i)=>({label:sh(h.name),data:[h.mpi,h.ari,h.rgi],borderColor:HC[i],backgroundColor:HC[i]+'18',borderWidth:i===0?2.5:1.5,pointRadius:i===0?5:3,tension:.3,fill:false}))},
-      options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:dark?'#9a9090':'#3a3630',font:{size:9},boxWidth:10,padding:8}}},
-        scales:{r:{ticks:{color:'#6a6678',font:{size:9},backdropColor:'transparent',color:dark?'#6a6678':'#4a4640'},
-          grid:{color:dark?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)'},angleLines:{color:dark?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)'},
-          pointLabels:{color:dark?'#9a9090':'#3a3630',font:{size:10}},min:0,max:mx}}}});}
+  // ── INDEX CHARTS: 3 bar charts terpisah MPI | ARI | RGI ──────
+  const _idxDefs=[
+    {id:'c-mpi',key:'mpi',icon:'🎯',label:'MPI — Market Penetration'},
+    {id:'c-ari',key:'ari',icon:'💰',label:'ARI — Avg Rate Index'},
+    {id:'c-rgi',key:'rgi',icon:'📈',label:'RGI — Revenue Generation'},
+  ];
+  const _tickC=dark?'#6a6678':'#4a4640';
+  const _gridC=dark?'rgba(255,255,255,.05)':'rgba(0,0,0,.07)';
+  const _baseC=dark?'rgba(255,255,255,.25)':'rgba(0,0,0,.2)';
+  const _lbls=ms.map(h=>sh(h.name));
+
+  _idxDefs.forEach(({id,key})=>{
+    const ctx=document.getElementById(id)?.getContext('2d');
+    if(!ctx) return;
+    const vals=ms.map(h=>+(h[key]||0).toFixed(3));
+    const maxVal=Math.max(...vals,1.3)+0.15;
+    // Color per bar: LGH=gold, >=1=green, <1=red
+    const bgC=ms.map((h,i)=>{
+      if(i===0) return 'rgba(201,168,76,.85)';
+      return (h[key]||0)>=1?'rgba(45,186,114,.75)':'rgba(224,85,85,.7)';
+    });
+    const bdC=ms.map((h,i)=>{
+      if(i===0) return '#c9a84c';
+      return (h[key]||0)>=1?'#2dba72':'#e05555';
+    });
+    charts[id]=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:_lbls,
+        datasets:[
+          // Baseline 1.00
+          {type:'line',label:'Baseline 1.00',data:_lbls.map(()=>1),
+           borderColor:_baseC,borderDash:[5,3],borderWidth:1.5,
+           pointRadius:0,fill:false,order:0},
+          // Index bars
+          {label:key.toUpperCase(),data:vals,
+           backgroundColor:bgC,borderColor:bdC,
+           borderWidth:1.5,borderRadius:6,borderSkipped:false,order:1},
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{
+            title:tt=>tt[0]?.label||'',
+            label:d=>{
+              if(d.datasetIndex===0) return 'Baseline: 1.00';
+              const v=d.raw,k=key.toUpperCase();
+              const s=v>=1.2?'🟢 Excellent':v>=1.0?'🟡 Good':v>=0.8?'🟠 Fair':'🔴 Weak';
+              return `${k}: ${v.toFixed(2)} ${s}`;
+            }
+          }}
+        },
+        scales:{
+          x:{ticks:{color:_tickC,font:{size:9},maxRotation:40,minRotation:30},grid:{display:false}},
+          y:{min:0,max:maxVal,
+             ticks:{color:_tickC,font:{size:9},callback:v=>v.toFixed(1)},
+             grid:{color:_gridC}}
+        }
+      }
+    });
+  });
+
+  // ── Shared legend ──────────────────────────────────────────────
+  const _legEl=document.getElementById('idx-legend');
+  if(_legEl){
+    _legEl.innerHTML=ms.map((h,i)=>`
+      <div style="display:flex;align-items:center;gap:5px;font-size:10px;
+                  color:${dark?'#9a9090':'#4a4640'};">
+        <span style="width:10px;height:10px;border-radius:2px;flex-shrink:0;
+                     background:${i===0?'#c9a84c':HC[i]};display:inline-block;"></span>
+        ${sh(h.name)}
+      </div>`).join('');
+  }
 }
 
 // ══════════════════════════════════════════════════════
