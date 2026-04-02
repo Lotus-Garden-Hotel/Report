@@ -277,6 +277,20 @@ body {
 .lb-bar-wrap { width:80px; }
 .lb-bar-track { height:4px; background:rgba(255,255,255,.06); border-radius:2px; overflow:hidden; }
 .lb-bar-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--gold),var(--gold2)); }
+/* ── LEADERBOARD BUDGET ROW ── */
+.lb-row-budget {
+  display:block; padding:14px 16px;
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+}
+.lb-achieve-grid {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px;
+}
+.lb-mini-card {
+  background:rgba(255,255,255,.04); border:1px solid var(--border);
+  border-radius:8px; padding:8px 10px;
+}
+.lb-mini-lbl { font-size:8px; color:var(--dim); letter-spacing:.1em; text-transform:uppercase; margin-bottom:3px; }
+.lb-mini-val { font-size:13px; font-weight:800; font-family:'DM Mono',monospace; line-height:1.2; }
 
 /* ── DETAIL TABLE ── */
 .tbl-controls { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; align-items:center; }
@@ -642,6 +656,13 @@ const GAS_URL = (function() {
 const MONTHS = ["JANUARI","FEBRUARI","MARET","APRIL","MEI","JUNI",
                 "JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"];
 const MONTH_SHORT = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agt","Sep","Okt","Nov","Des"];
+
+// ── Budget split per sales — ubah di sini untuk adjustment ke depan ──
+// Key = nama sales UPPERCASE, value = porsi dari total budget bulanan (0–1)
+const SALES_BUDGET_SPLIT = {
+  'DWI':  0.60,
+  'TINA': 0.40,
+};
 
 // ── State ──
 let _idToken   = '';
@@ -1410,25 +1431,93 @@ function renderSalesLeaderboard() {
   const sorted = Object.entries(salesMap).sort((a,b)=>b[1].rev-a[1].rev);
   const maxRev = sorted[0]?.[1]?.rev || 1;
 
-  const rows = sorted.map(([name,d],i) => `
-    <div class="lb-row">
-      <div class="lb-rank ${i===0?'r1':i===1?'r2':i===2?'r3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
-      <div class="lb-name">${esc(name)}</div>
-      <div class="lb-bar-wrap">
-        <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${pct(d.rev,maxRev)}%"></div></div>
-      </div>
-      <div class="lb-stats">
-        <div class="lb-stat"><div class="lb-stat-val">${d.cnt}</div><div class="lb-stat-lbl">Events</div></div>
-        <div class="lb-stat"><div class="lb-stat-val" style="color:var(--gold)">${fmtRp(d.rev)}</div><div class="lb-stat-lbl">Revenue</div></div>
-        <div class="lb-stat"><div class="lb-stat-val">${d.pax}</div><div class="lb-stat-lbl">Pax</div></div>
-      </div>
-    </div>`).join('');
+  // ── Total budget periode terpilih ──
+  let totalBudget = 0;
+  if (_selMonth === 'ALL') {
+    MONTHS.forEach(m => { totalBudget += getBudgetDisplay(getBudgetFor(m).targetRevenue); });
+  } else {
+    totalBudget = getBudgetDisplay(getBudgetFor(_selMonth).targetRevenue);
+  }
+
+  // ── Label judul sesuai filter ──
+  const monthLabel = _selMonth === 'ALL'
+    ? 'Semua Bulan'
+    : _selMonth.charAt(0) + _selMonth.slice(1).toLowerCase() + ' 2026';
+
+  const rows = sorted.map(([name, d], i) => {
+    const splitKey  = name.toUpperCase();
+    const split     = SALES_BUDGET_SPLIT[splitKey];
+    const hasBudget = split !== undefined && totalBudget > 0;
+    const budgetSales = hasBudget ? totalBudget * split : 0;
+    const achieve   = hasBudget ? (d.rev / budgetSales * 100) : 0;
+    const achColor  = achieve >= 100 ? 'var(--green)' : achieve >= 70 ? 'var(--amber)' : 'var(--red)';
+    const rankClass = i===0?'r1':i===1?'r2':i===2?'r3':'';
+    const rankIcon  = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'';
+
+    if (hasBudget) {
+      const barW = Math.min(achieve, 100).toFixed(1);
+      return `
+        <div class="lb-row lb-row-budget">
+          <!-- nama + badge target -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <div class="lb-rank ${rankClass}">${rankIcon}</div>
+            <div class="lb-name" style="font-size:13px;flex:1;">${esc(name)}</div>
+            <div style="font-size:9px;color:var(--dim);background:rgba(255,255,255,.05);
+              border:1px solid var(--border);border-radius:20px;padding:3px 10px;
+              letter-spacing:.06em;white-space:nowrap;">
+              Target ${Math.round(split*100)}% Budget
+            </div>
+          </div>
+          <!-- 3 mini card: Actual / Budget / Achieve -->
+          <div class="lb-achieve-grid">
+            <div class="lb-mini-card">
+              <div class="lb-mini-lbl">Actual</div>
+              <div class="lb-mini-val" style="color:var(--gold)">${fmtRp(d.rev)}</div>
+            </div>
+            <div class="lb-mini-card">
+              <div class="lb-mini-lbl">Budget</div>
+              <div class="lb-mini-val" style="color:var(--muted)">${fmtRp(budgetSales)}</div>
+            </div>
+            <div class="lb-mini-card">
+              <div class="lb-mini-lbl">Achieve</div>
+              <div class="lb-mini-val" style="color:${achColor}">${achieve.toFixed(2)}%</div>
+            </div>
+          </div>
+          <!-- progress bar achieve -->
+          <div style="margin-bottom:10px;">
+            <div style="height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${barW}%;background:${achColor};border-radius:3px;transition:width .6s ease;"></div>
+            </div>
+          </div>
+          <!-- Events & Pax -->
+          <div style="display:flex;gap:20px;">
+            <div class="lb-stat"><div class="lb-stat-val">${d.cnt}</div><div class="lb-stat-lbl">Events</div></div>
+            <div class="lb-stat"><div class="lb-stat-val">${d.pax.toLocaleString('id-ID')}</div><div class="lb-stat-lbl">Pax</div></div>
+          </div>
+        </div>`;
+    } else {
+      // Sales tanpa mapping budget → tampilan sederhana (original)
+      return `
+        <div class="lb-row">
+          <div class="lb-rank ${rankClass}">${rankIcon}</div>
+          <div class="lb-name">${esc(name)}</div>
+          <div class="lb-bar-wrap">
+            <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${pct(d.rev,maxRev)}%"></div></div>
+          </div>
+          <div class="lb-stats">
+            <div class="lb-stat"><div class="lb-stat-val">${d.cnt}</div><div class="lb-stat-lbl">Events</div></div>
+            <div class="lb-stat"><div class="lb-stat-val" style="color:var(--gold)">${fmtRp(d.rev)}</div><div class="lb-stat-lbl">Revenue</div></div>
+            <div class="lb-stat"><div class="lb-stat-val">${d.pax.toLocaleString('id-ID')}</div><div class="lb-stat-lbl">Pax</div></div>
+          </div>
+        </div>`;
+    }
+  }).join('');
 
   const sec = document.createElement('div');
   sec.innerHTML = `
     <div class="section-hdr" style="margin-top:28px;">
       <div class="section-title">◆ Sales Leaderboard</div>
-      <div class="section-sub">Performance per Sales</div>
+      <div class="section-sub">${monthLabel}</div>
     </div>
     <div class="chart-card fade-up">
       <div class="leaderboard">${rows || '<div style="color:var(--dim);text-align:center;padding:20px;">Tidak ada data</div>'}</div>
