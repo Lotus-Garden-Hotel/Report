@@ -4,7 +4,41 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Google Review - Lotus Garden Hotel</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 400;
+  src: url('https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5.0.17/files/montserrat-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 600;
+  src: url('https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5.0.17/files/montserrat-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 700;
+  src: url('https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5.0.17/files/montserrat-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 800;
+  src: url('https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5.0.17/files/montserrat-latin-800-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 900;
+  src: url('https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5.0.17/files/montserrat-latin-900-normal.woff2') format('woff2');
+}
+</style>
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5.0.17/files/montserrat-latin-700-normal.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5.0.17/files/montserrat-latin-800-normal.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5.0.17/files/montserrat-latin-900-normal.woff2">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -626,7 +660,7 @@
 
     // Tunggu semua font benar-benar loaded sebelum capture
     document.fonts.ready.then(function() {
-      // Tambah delay kecil untuk pastikan render selesai
+      // Delay lebih panjang agar woff2 fully parsed & rendered
       setTimeout(function() {
 
         html2canvas(el, {
@@ -680,7 +714,7 @@
           console.error(err);
         });
 
-      }, 300); // 300ms delay untuk render stabil
+      }, 800); // 800ms delay agar woff2 fully parsed
     });
   }
 </script>
