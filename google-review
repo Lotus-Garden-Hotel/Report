@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Review - Lotus Garden Hotel</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #b8b0a0;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(201,168,76,0.12) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(26,58,92,0.10) 0%, transparent 50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    font-family: 'Montserrat', sans-serif;
+    padding: 20px 20px 40px;
+    gap: 16px;
+  }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 10px;
+    padding: 10px 16px;
+    backdrop-filter: blur(6px);
+  }
+  .toolbar button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border: none;
+    border-radius: 7px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: all 0.15s;
+  }
+  .btn-png { background: #1a3a5c; color: white; }
+  .btn-png:hover { background: #0f2540; transform: translateY(-1px); }
+  .btn-print { background: #c9a84c; color: #1a1a1a; }
+  .btn-print:hover { background: #b8942e; transform: translateY(-1px); }
+  .toolbar-note {
+    font-size: 10px;
+    color: rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+  }
+
+  /* ── Acrylic Stand ── */
+  .acrylic-stand { position: relative; width: 420px; }
+  .acrylic-frame {
+    background: rgba(220,215,200,0.55);
+    border: 2px solid rgba(255,255,255,0.8);
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow:
+      0 0 0 1px rgba(180,170,150,0.4),
+      4px 4px 20px rgba(0,0,0,0.28),
+      inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .flyer {
+    background: #f5f0e4;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  .header-bar {
+    background: #1a3a5c;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    padding: 7px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 10px 18px 6px;
+    position: relative;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: 6px; left: 6px;
+    width: 30px; height: 30px;
+    border-top: 2px solid #c9a84c;
+    border-left: 2px solid #c9a84c;
+  }
+  .hero::after {
+    content: '';
+    position: absolute; top: 6px; right: 6px;
+    width: 30px; height: 30px;
+    border-top: 2px solid #c9a84c;
+    border-right: 2px solid #c9a84c;
+  }
+  .title-help { font-size: 10px; font-weight: 700; color: #1a3a5c; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+  .title-main { font-size: 36px; font-weight: 900; color: #1a3a5c; line-height: 1; text-transform: uppercase; letter-spacing: -0.5px; }
+  .title-google { color: #4285f4; }
+  .title-sub { font-size: 13px; font-weight: 800; color: #c9a84c; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+  .gold-divider {
+    height: 2px;
+    background: linear-gradient(to right, transparent, #c9a84c, #e8d48a, #c9a84c, transparent);
+    margin: 0 18px 10px;
+  }
+
+  /* ── Body ── */
+  .body-content { display: flex; gap: 12px; padding: 0 16px 10px; }
+
+  /* QR */
+  .qr-section { flex: 0 0 160px; }
+  .qr-label {
+    background: #1a3a5c; color: #f5f0e4;
+    font-size: 9px; font-weight: 800; letter-spacing: 1px;
+    text-align: center; padding: 4px 6px;
+    display: flex; align-items: center; gap: 4px; justify-content: center;
+  }
+  .arrow { color: #c9a84c; font-size: 12px; }
+  .qr-border { border: 2.5px solid #c9a84c; background: white; margin: 3px 0; }
+  .qr-zone {
+    width: 100%; aspect-ratio: 1/1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; position: relative;
+    background: #fff; padding: 8px;
+  }
+  .qr-zone:hover { background: #f8f5ef; }
+  #qr-img {
+    width: 100%; height: 100%;
+    object-fit: contain; display: none;
+    position: absolute; top: 0; left: 0; padding: 6px;
+  }
+  #qr-img.on { display: block; }
+  .qr-placeholder-hint { display: flex; flex-direction: column; align-items: center; gap: 5px; pointer-events: none; }
+  .qr-placeholder-hint.gone { display: none; }
+  .qr-hint-text { font-size: 8px; font-weight: 700; color: #1a3a5c; opacity: 0.45; text-align: center; line-height: 1.4; }
+  .qr-insert-btn {
+    position: absolute; bottom: 5px; right: 5px;
+    background: #1a3a5c; color: white;
+    border: none; border-radius: 3px;
+    font-size: 7px; font-weight: 700;
+    padding: 3px 6px; cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    opacity: 0.75; letter-spacing: 0.3px;
+  }
+  .qr-insert-btn:hover { opacity: 1; }
+  #qr-input { display: none; }
+  .qr-caption { font-size: 10.5px; font-weight: 600; color: #1a3a5c; text-align: center; margin-top: 8px; line-height: 1.4; }
+
+  /* Gifts */
+  .gifts-section { flex: 1; }
+  .gifts-title { font-size: 11px; font-weight: 800; color: #1a3a5c; letter-spacing: 0.4px; margin-bottom: 8px; text-transform: uppercase; }
+  .gift-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .gift-icon {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; border: 2px solid #c9a84c; overflow: hidden;
+  }
+  .gift-icon.k { background: #2c4a2c; }
+  .gift-icon.p { background: #d4c9a8; border-color: #a89060; }
+  .gift-icon.v { background: #8b4513; }
+  .gift-text { font-size: 11px; font-weight: 700; color: #1a3a5c; line-height: 1.3; }
+
+  .steps-title { font-size: 11px; font-weight: 800; color: #1a3a5c; margin: 10px 0 5px; }
+  .step { font-size: 10px; font-weight: 600; color: #1a3a5c; line-height: 1.65; }
+
+  .rating-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: white; border-radius: 6px; padding: 5px 10px;
+    margin-top: 8px; border: 1px solid #e0e0e0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  }
+  .stars { color: #fbbc04; font-size: 14px; letter-spacing: -1px; }
+
+  /* ══════════════════════════════════════
+     FOOTER — REDESIGNED (compact & modern)
+     ══════════════════════════════════════ */
+  .footer {
+    background: linear-gradient(135deg, #0f2540 0%, #1a3a5c 60%, #1e4570 100%);
+    padding: 0;
+    display: flex;
+    align-items: stretch;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Gold accent top line */
+  .footer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(to right, transparent, #c9a84c, #e8d48a, #c9a84c, transparent);
+  }
+
+  /* Subtle decorative circle in bg */
+  .footer::after {
+    content: '';
+    position: absolute;
+    right: -30px; bottom: -30px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,168,76,0.15);
+    pointer-events: none;
+  }
+
+  /* Logo zone — left column */
+  .logo-zone {
+    flex-shrink: 0;
+    width: 86px;
+    background: rgba(255,255,255,0.06);
+    border-right: 1px solid rgba(201,168,76,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s;
+    padding: 12px 8px;
+  }
+  .logo-zone:hover { background: rgba(255,255,255,0.11); }
+
+  #logo-img {
+    width: 70px; height: 60px;
+    object-fit: contain; display: none; border-radius: 3px;
+  }
+  #logo-img.on { display: block; }
+  .logo-hint { display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; }
+  .logo-hint.gone { display: none; }
+  .logo-hint-text { font-size: 7.5px; font-weight: 700; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.4; }
+  .logo-insert-btn {
+    position: absolute; bottom: 4px; right: 4px;
+    background: #c9a84c; color: #1a1a1a;
+    border: none; border-radius: 3px;
+    font-size: 6.5px; font-weight: 800;
+    padding: 2px 5px; cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    letter-spacing: 0.3px; opacity: 0.85;
+  }
+  .logo-insert-btn:hover { opacity: 1; }
+  #logo-input { display: none; }
+
+  /* Hotel info — main content */
+  .footer-info {
+    flex: 1;
+    padding: 12px 14px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+  .hotel-name-footer {
+    color: #f0c030;
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    line-height: 1.4;
+    margin-bottom: 4px;
+  }
+  .footer-contacts {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .f-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .f-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    opacity: 0.75;
+  }
+  .f-row span {
+    font-size: 8.5px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.88);
+    letter-spacing: 0.2px;
+  }
+
+  /* Tagline chip — right side */
+  .footer-tagline {
+    flex-shrink: 0;
+    padding: 12px 14px 12px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tagline-pill {
+    border: 1px solid rgba(201,168,76,0.35);
+    border-radius: 20px;
+    padding: 5px 11px;
+    text-align: center;
+  }
+  .tagline-pill span {
+    display: block;
+    font-size: 7px;
+    font-weight: 700;
+    color: #c9a84c;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    line-height: 1.5;
+  }
+  .tagline-star {
+    font-size: 11px;
+    color: #fbbc04;
+    display: block;
+    text-align: center;
+    letter-spacing: -1px;
+    margin-top: 2px;
+  }
+
+  /* Acrylic base */
+  .acrylic-base {
+    height: 16px;
+    background: linear-gradient(to bottom, rgba(180,170,150,0.4), rgba(140,130,110,0.6));
+    border-radius: 0 0 4px 4px;
+    border: 1px solid rgba(255,255,255,0.3); border-top: none;
+  }
+  .sparkle {
+    position: absolute; bottom: -18px; right: -15px;
+    color: rgba(255,255,255,0.5); font-size: 22px;
+  }
+
+  /* Print mode */
+  @media print {
+    body { background: white !important; padding: 0 !important; justify-content: center; }
+    .toolbar { display: none !important; }
+    .acrylic-stand { width: 100%; max-width: 500px; }
+    .acrylic-frame { box-shadow: none; border: none; padding: 0; background: transparent; }
+    .acrylic-base, .sparkle { display: none; }
+    .qr-insert-btn, .logo-insert-btn { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── TOOLBAR ── -->
+<div class="toolbar">
+  <button class="btn-png" id="btn-save" onclick="savePNG()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    Simpan ke PNG
+  </button>
+  <button class="btn-print" onclick="window.print()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 6 2 18 2 18 9"/>
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+      <rect x="6" y="14" width="12" height="8"/>
+    </svg>
+    Cetak / Print
+  </button>
+  <span class="toolbar-note">💡 Upload logo & QR code terlebih dahulu sebelum simpan</span>
+</div>
+
+<!-- ── FLYER ── -->
+<div class="acrylic-stand" id="capture-area">
+  <div class="acrylic-frame">
+    <div class="flyer">
+
+      <!-- Header -->
+      <div class="header-bar">
+        <span>BANTU KAMI MENINGKATKAN KUALITAS</span>
+        <div style="width:28px;height:28px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/>
+            <path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.32-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/>
+            <path fill="#FBBC05" d="M11.68 28.18c-.44-1.32-.69-2.73-.69-4.18s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.34-5.7z"/>
+            <path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.34 5.7c1.74-5.2 6.59-9.07 12.32-9.07z"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="title-help">Berikan Ulasan</div>
+        <div class="title-main"><span class="title-google">GOOGLE</span> ANDA!</div>
+        <div class="title-sub">& Dapatkan Cender Mata Menarik!</div>
+      </div>
+      <div class="gold-divider"></div>
+
+      <!-- Body -->
+      <div class="body-content">
+
+        <!-- QR -->
+        <div class="qr-section">
+          <div class="qr-label">
+            <span class="arrow">→</span> PINDAI DI SINI
+          </div>
+          <div class="qr-border">
+            <div class="qr-zone" onclick="document.getElementById('qr-input').click()">
+              <img id="qr-img" src="" alt="QR Code"/>
+              <div class="qr-placeholder-hint" id="qr-hint">
+                <svg width="46" height="46" viewBox="0 0 64 64" fill="none" style="opacity:0.28">
+                  <rect x="4"  y="4"  width="22" height="22" rx="2" stroke="#1a3a5c" stroke-width="3"/>
+                  <rect x="10" y="10" width="10" height="10" fill="#1a3a5c"/>
+                  <rect x="38" y="4"  width="22" height="22" rx="2" stroke="#1a3a5c" stroke-width="3"/>
+                  <rect x="44" y="10" width="10" height="10" fill="#1a3a5c"/>
+                  <rect x="4"  y="38" width="22" height="22" rx="2" stroke="#1a3a5c" stroke-width="3"/>
+                  <rect x="10" y="44" width="10" height="10" fill="#1a3a5c"/>
+                  <rect x="38" y="38" width="5"  height="5"  fill="#1a3a5c"/>
+                  <rect x="45" y="38" width="5"  height="5"  fill="#1a3a5c"/>
+                  <rect x="52" y="38" width="5"  height="5"  fill="#1a3a5c"/>
+                  <rect x="38" y="45" width="5"  height="5"  fill="#1a3a5c"/>
+                  <rect x="52" y="45" width="5"  height="5"  fill="#1a3a5c"/>
+                  <rect x="45" y="52" width="5"  height="5"  fill="#1a3a5c"/>
+                  <rect x="52" y="52" width="5"  height="5"  fill="#1a3a5c"/>
+                  <circle cx="32" cy="32" r="9" fill="#c9a84c" opacity="0.85"/>
+                  <rect x="30.5" y="27" width="3" height="10" fill="white" rx="1"/>
+                  <rect x="27"   y="30.5" width="10" height="3" fill="white" rx="1"/>
+                </svg>
+                <div class="qr-hint-text">Klik untuk<br>Upload QR Code</div>
+              </div>
+              <button class="qr-insert-btn"
+                onclick="event.stopPropagation();document.getElementById('qr-input').click()">
+                📎 INSERT QR
+              </button>
+            </div>
+            <input type="file" id="qr-input" accept="image/*" onchange="loadQR(event)"/>
+          </div>
+          <div class="qr-label">
+            UNTUK ULASAN GOOGLE <span class="arrow">←</span>
+          </div>
+          <div class="qr-caption">
+            Bagikan pengalaman Anda<br>
+            &amp; dapatkan hadiah spesial<br>
+            dari kami!
+          </div>
+        </div>
+
+        <!-- Gifts -->
+        <div class="gifts-section">
+          <div class="gifts-title">Cendera Mata Menarik:</div>
+
+          <div class="gift-item">
+            <div class="gift-icon k">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="9" r="5" stroke="#c9a84c" stroke-width="1.5"/>
+                <circle cx="12" cy="9" r="1.5" fill="#c9a84c"/>
+                <path d="M12 14v4M10 16h4" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="gift-text">Gantungan<br>Kunci Eksklusif</div>
+          </div>
+
+          <div class="gift-item">
+            <div class="gift-icon p">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect x="4" y="8" width="16" height="11" rx="2" stroke="#5a4a2a" stroke-width="1.5" fill="#c8b88a"/>
+                <path d="M8 8V7a4 4 0 0 1 8 0v1" stroke="#5a4a2a" stroke-width="1.5"/>
+                <path d="M9 13l2 2 4-4" stroke="#5a4a2a" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="gift-text">Pouch Kanvas<br>"Lotus Garden"</div>
+          </div>
+
+          <div class="gift-item">
+            <div class="gift-icon v">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="7" width="18" height="10" rx="2" stroke="#f0d090" stroke-width="1.5" fill="#a06020"/>
+                <circle cx="7" cy="12" r="2" stroke="#f0d090" stroke-width="1"/>
+                <line x1="11" y1="10" x2="20" y2="10" stroke="#f0d090" stroke-width="1"/>
+                <line x1="11" y1="12" x2="18" y2="12" stroke="#f0d090" stroke-width="1"/>
+                <line x1="11" y1="14" x2="16" y2="14" stroke="#f0d090" stroke-width="1"/>
+              </svg>
+            </div>
+            <div class="gift-text">Voucher<br>Diskon 10%</div>
+          </div>
+
+          <div class="steps-title"><strong>Langkah Mudah:</strong></div>
+          <div class="step">1. Pindai Kode QR</div>
+          <div class="step">2. Beri Bintang 5 &amp; Ulasan</div>
+          <div class="step">3. Tunjukkan ke Resepsionis</div>
+          <div class="step">4. Ambil Hadiah Anda!</div>
+
+          <div class="rating-badge">
+            <span style="font-family:Arial,sans-serif;font-size:13px;">
+              <span style="color:#4285f4">G</span><span style="color:#ea4335">o</span><span style="color:#fbbc04">o</span><span style="color:#4285f4">g</span><span style="color:#34a853">l</span><span style="color:#ea4335">e</span>
+            </span>
+            <svg width="70" height="13" viewBox="0 0 70 13" fill="#fbbc04" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="6,0.5 7.5,4.5 12,4.5 8.5,7.2 9.8,11.5 6,9 2.2,11.5 3.5,7.2 0,4.5 4.5,4.5"/>
+              <polygon points="20,0.5 21.5,4.5 26,4.5 22.5,7.2 23.8,11.5 20,9 16.2,11.5 17.5,7.2 14,4.5 18.5,4.5"/>
+              <polygon points="34,0.5 35.5,4.5 40,4.5 36.5,7.2 37.8,11.5 34,9 30.2,11.5 31.5,7.2 28,4.5 32.5,4.5"/>
+              <polygon points="48,0.5 49.5,4.5 54,4.5 50.5,7.2 51.8,11.5 48,9 44.2,11.5 45.5,7.2 42,4.5 46.5,4.5"/>
+              <polygon points="62,0.5 63.5,4.5 68,4.5 64.5,7.2 65.8,11.5 62,9 58.2,11.5 59.5,7.2 56,4.5 60.5,4.5"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ FOOTER REDESIGNED ══ -->
+      <div class="footer">
+
+        <!-- Logo zone -->
+        <div class="logo-zone" onclick="document.getElementById('logo-input').click()">
+          <img id="logo-img" src="" alt="Logo"/>
+          <div class="logo-hint" id="logo-hint">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <div class="logo-hint-text">Klik upload<br>Logo</div>
+          </div>
+          <button class="logo-insert-btn"
+            onclick="event.stopPropagation();document.getElementById('logo-input').click()">
+            📎 LOGO
+          </button>
+        </div>
+        <input type="file" id="logo-input" accept="image/*" onchange="loadLogo(event)"/>
+
+        <!-- Hotel info -->
+        <div class="footer-info">
+          <div class="hotel-name-footer">
+            Lotus Garden Hotel<br>By Waringinhospitality
+          </div>
+          <div class="footer-contacts">
+            <div class="f-row">
+              <svg class="f-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5"/>
+                <circle cx="12" cy="12" r="4"/>
+                <circle cx="17.5" cy="6.5" r="1" fill="rgba(201,168,76,0.8)" stroke="none"/>
+              </svg>
+              <span>@lotusgardenhotelbywh</span>
+            </div>
+            <div class="f-row">
+              <svg class="f-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              <span>waringinhospitality.com</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tagline pill -->
+        <div class="footer-tagline">
+          <div class="tagline-pill">
+            <span>Ulasan Terbaik</span>
+            <span>Anda</span>
+            <span class="tagline-star">
+              <svg width="56" height="11" viewBox="0 0 56 11" fill="#fbbc04" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="5,0.5 6.2,3.8 9.8,3.8 6.9,5.9 8,9.5 5,7.5 2,9.5 3.1,5.9 0.2,3.8 3.8,3.8"/>
+                <polygon points="16,0.5 17.2,3.8 20.8,3.8 17.9,5.9 19,9.5 16,7.5 13,9.5 14.1,5.9 11.2,3.8 14.8,3.8"/>
+                <polygon points="27,0.5 28.2,3.8 31.8,3.8 28.9,5.9 30,9.5 27,7.5 24,9.5 25.1,5.9 22.2,3.8 25.8,3.8"/>
+                <polygon points="38,0.5 39.2,3.8 42.8,3.8 39.9,5.9 41,9.5 38,7.5 35,9.5 36.1,5.9 33.2,3.8 36.8,3.8"/>
+                <polygon points="49,0.5 50.2,3.8 53.8,3.8 50.9,5.9 52,9.5 49,7.5 46,9.5 47.1,5.9 44.2,3.8 47.8,3.8"/>
+              </svg>
+            </span>
+          </div>
+        </div>
+
+      </div><!-- /footer -->
+
+    </div><!-- /flyer -->
+  </div><!-- /acrylic-frame -->
+  <div class="acrylic-base"></div>
+  <div class="sparkle">✦</div>
+</div><!-- /acrylic-stand -->
+
+<script>
+  function loadQR(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const img = document.getElementById('qr-img');
+      img.src = ev.target.result; img.classList.add('on');
+      document.getElementById('qr-hint').classList.add('gone');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function loadLogo(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const img = document.getElementById('logo-img');
+      img.src = ev.target.result; img.classList.add('on');
+      document.getElementById('logo-hint').classList.add('gone');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function savePNG() {
+    const el = document.getElementById('capture-area');
+    const btn = document.getElementById('btn-save');
+    const uiBtns = el.querySelectorAll('.qr-insert-btn, .logo-insert-btn');
+
+    // Loading state
+    btn.disabled = true;
+    btn.textContent = '⏳ Memproses...';
+
+    uiBtns.forEach(b => b.style.display = 'none');
+
+    const A4_W  = 2480;
+    const A4_H  = 3508;
+    const MARGIN = 140;
+
+    const resetBtn = () => {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Simpan ke PNG`;
+    };
+
+    // Tunggu semua font benar-benar loaded sebelum capture
+    document.fonts.ready.then(function() {
+      // Tambah delay kecil untuk pastikan render selesai
+      setTimeout(function() {
+
+        html2canvas(el, {
+          scale: 6,
+          useCORS: true,
+          allowTaint: true,        // izinkan font lokal & aset mixed-origin
+          backgroundColor: null,
+          logging: false,
+          windowWidth: el.scrollWidth,
+          windowHeight: el.scrollHeight,
+          onclone: function(clonedDoc) {
+            // Pastikan font ter-apply di clone document
+            clonedDoc.querySelectorAll('*').forEach(function(node) {
+              node.style.fontFamily = node.style.fontFamily || '';
+            });
+          }
+        }).then(function(flyerCanvas) {
+          uiBtns.forEach(b => b.style.display = '');
+
+          const a4  = document.createElement('canvas');
+          a4.width  = A4_W;
+          a4.height = A4_H;
+          const ctx = a4.getContext('2d');
+
+          // Background putih bersih
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, A4_W, A4_H);
+
+          // Hitung skala agar flyer muat di A4 dengan margin
+          const sc = Math.min(
+            (A4_W - MARGIN * 2) / flyerCanvas.width,
+            (A4_H - MARGIN * 2) / flyerCanvas.height
+          );
+          const drawW = flyerCanvas.width  * sc;
+          const drawH = flyerCanvas.height * sc;
+          const x = (A4_W - drawW) / 2;
+          const y = (A4_H - drawH) / 2;
+
+          ctx.drawImage(flyerCanvas, x, y, drawW, drawH);
+
+          const link = document.createElement('a');
+          link.download = 'google-review-lotus-garden-A4.png';
+          link.href = a4.toDataURL('image/png');
+          link.click();
+          resetBtn();
+
+        }).catch(function(err) {
+          uiBtns.forEach(b => b.style.display = '');
+          resetBtn();
+          alert('Gagal menyimpan PNG.');
+          console.error(err);
+        });
+
+      }, 300); // 300ms delay untuk render stabil
+    });
+  }
+</script>
+
+</body>
+</html>
