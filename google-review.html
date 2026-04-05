@@ -533,7 +533,7 @@
             <span style="font-family:Arial,sans-serif;font-size:13px;">
               <span style="color:#4285f4">G</span><span style="color:#ea4335">o</span><span style="color:#fbbc04">o</span><span style="color:#4285f4">g</span><span style="color:#34a853">l</span><span style="color:#ea4335">e</span>
             </span>
-            <span style="font-family:Arial,sans-serif;font-size:14px;color:#fbbc04;letter-spacing:1px;">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+            <canvas id="star-rating" width="80" height="16" style="display:inline-block;vertical-align:middle;"></canvas>
           </div>
         </div>
       </div>
@@ -610,6 +610,30 @@
 </div><!-- /acrylic-stand -->
 
 <script>
+  /* ── Draw 5 stars onto canvas (html2canvas-safe) ── */
+  function drawStars() {
+    const c = document.getElementById('star-rating');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#fbbc04';
+    const size = 7, gap = 16, top = 8;
+    for (let i = 0; i < 5; i++) {
+      const cx = 8 + i * gap, cy = top;
+      ctx.beginPath();
+      for (let p = 0; p < 5; p++) {
+        const outerA = (Math.PI * 2 * p / 5) - Math.PI / 2;
+        const innerA = outerA + Math.PI / 5;
+        if (p === 0) ctx.moveTo(cx + size * Math.cos(outerA), cy + size * Math.sin(outerA));
+        else ctx.lineTo(cx + size * Math.cos(outerA), cy + size * Math.sin(outerA));
+        ctx.lineTo(cx + (size*0.4) * Math.cos(innerA), cy + (size*0.4) * Math.sin(innerA));
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  window.addEventListener('load', drawStars);
+
   function loadQR(e) {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
