@@ -971,7 +971,14 @@ function getFilteredEvents() {
     evts = (_reportData[_selMonth]?.events || []).map(e => ({...e, bulan:_selMonth}));
   }
   // ONHAND mode: hanya CONFIRM & TENTATIVE
-  if (_onhandMode) evts = evts.filter(e => e.status === 'CONFIRM' || e.status === 'TENTATIVE');
+  if (_onhandMode) {
+    evts = evts.filter(e => e.status === 'CONFIRM' || e.status === 'TENTATIVE');
+  } else {
+    // FIX: terapkan checkbox filter ke SEMUA caller (KPI, chart, tabel)
+    if (_stChecked && _stChecked.size < ST_ALL.length) {
+      evts = evts.filter(e => _stChecked.has((e.status||'').toUpperCase()));
+    }
+  }
   return evts;
 }
 
@@ -995,6 +1002,8 @@ function renderAll() {
   container.appendChild(renderSalesLeaderboard());
   container.appendChild(renderDetailTable());
   container.appendChild(renderBudgetEditor());
+  // FIX: setelah render ulang DOM, sync UI checkbox kembali
+  _updateStCbUI();
 }
 
 // ── SECTION 1: KPI ──────────────────────────────────────────────
@@ -1630,7 +1639,7 @@ function renderDetailTable() {
           <label class="st-cb-item CANCEL"    id="stcb-CANCEL"    onclick="toggleStCb('CANCEL')">   <input type="checkbox" checked> ✗ Cancel    </label>
           <label class="st-cb-item DIPINJAM"  id="stcb-DIPINJAM"  onclick="toggleStCb('DIPINJAM')"> <input type="checkbox" checked> ⇄ Dipinjam  </label>
           <label class="st-cb-item POSTPONE"  id="stcb-POSTPONE"  onclick="toggleStCb('POSTPONE')"> <input type="checkbox" checked> ⏩ Postpone  </label>
-          <label class="st-cb-item NS"        id="stcb-N/S"       onclick="toggleStCb('N/S')">      <input type="checkbox" checked> — N/S       </label>
+          <label class="st-cb-item NS"        id="stcb-NS"        onclick="toggleStCb('N/S')">      <input type="checkbox" checked> — N/S       </label>
           <button class="st-cb-all-btn" onclick="stCbSelectAll(true)"  title="Centang semua">Semua</button>
           <button class="st-cb-all-btn" onclick="stCbSelectAll(false)" title="Hapus semua">Hapus</button>
         </div>
@@ -1669,20 +1678,23 @@ function toggleStCb(st) {
   if (_stChecked.has(st)) _stChecked.delete(st);
   else _stChecked.add(st);
   _updateStCbUI();
-  filterDetailTable();
+  // FIX: re-render semua (KPI + chart + tabel) bukan hanya tabel
+  renderAll();
 }
 
 function stCbSelectAll(checked) {
   if (_onhandMode) return;
   _stChecked = checked ? new Set(ST_ALL) : new Set();
   _updateStCbUI();
-  filterDetailTable();
+  // FIX: re-render semua bukan hanya tabel
+  renderAll();
 }
 
 function _updateStCbUI() {
   const isDisabled = _onhandMode;
   ST_ALL.forEach(st => {
-    const id  = 'stcb-' + st;
+    // FIX: N/S menggunakan id 'stcb-NS' (slash tidak valid di HTML id)
+    const id  = 'stcb-' + st.replace('/','');
     const el  = document.getElementById(id);
     if (!el) return;
     const checked = _stChecked.has(st);
@@ -1710,14 +1722,12 @@ function filterDetailTable() {
   const tbody  = document.getElementById('detail-tbody');
   if (!tbody) return;
 
-  const events = getFilteredEvents();
+  const events = getFilteredEvents();  // sudah terfilter oleh _stChecked
   const filtered = events.filter(e => {
     const txt = [e.customer,e.venue,e.package,e.sales,e.eventType].join(' ').toLowerCase();
-    // Status: cek apakah status event ada di _stChecked
-    const stNorm = (e.status||'').toUpperCase();
-    const statusMatch = _onhandMode ? true : _stChecked.has(stNorm);
+    // FIX: status filter sudah ditangani getFilteredEvents()
+    // di sini hanya filter text search dan venue
     return (!q || txt.includes(q)) &&
-           statusMatch &&
            (!vnFil || e.venue.toUpperCase().includes(vnFil.toUpperCase()));
   });
 
