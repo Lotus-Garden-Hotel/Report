@@ -304,6 +304,39 @@ body {
 
 /* ── DETAIL TABLE ── */
 .tbl-controls { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; align-items:center; }
+/* ── STATUS CHECKBOX FILTER ── */
+.st-filter-wrap {
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:10px; padding:5px 10px;
+}
+.st-filter-lbl {
+  font-size:8px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--dim); flex-shrink:0; margin-right:2px;
+}
+.st-cb-item {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 8px; border-radius:20px; cursor:pointer;
+  border:1px solid transparent; transition:all .15s; user-select:none;
+  font-size:10px; font-weight:700;
+}
+.st-cb-item input[type=checkbox] { display:none; }
+.st-cb-item.CONFIRM   { color:#818cf8; border-color:rgba(99,102,241,.25);  background:rgba(99,102,241,.1);  }
+.st-cb-item.TENTATIVE { color:#fbbf24; border-color:rgba(245,158,11,.25);  background:rgba(245,158,11,.1);  }
+.st-cb-item.DONE      { color:#34d399; border-color:rgba(16,185,129,.25);  background:rgba(16,185,129,.1);  }
+.st-cb-item.CANCEL    { color:#f87171; border-color:rgba(239,68,68,.25);   background:rgba(239,68,68,.1);   }
+.st-cb-item.DIPINJAM  { color:#2dd4bf; border-color:rgba(20,184,166,.25);  background:rgba(20,184,166,.1);  }
+.st-cb-item.POSTPONE  { color:#fb923c; border-color:rgba(249,115,22,.25);  background:rgba(249,115,22,.1);  }
+.st-cb-item.NS        { color:#9ca3af; border-color:rgba(156,163,175,.25); background:rgba(156,163,175,.1); }
+/* unchecked = redup */
+.st-cb-item.unchecked { opacity:.28; }
+.st-cb-item.disabled  { opacity:.25; cursor:not-allowed; pointer-events:none; }
+.st-cb-all-btn {
+  font-size:9px; font-weight:700; padding:3px 9px; border-radius:8px; cursor:pointer;
+  background:rgba(255,255,255,.05); border:1px solid var(--border2); color:var(--muted);
+  transition:all .15s;
+}
+.st-cb-all-btn:hover { border-color:var(--gold); color:var(--gold); }
 .tbl-search {
   flex:1; min-width:140px; background:var(--surface); border:1px solid var(--border);
   border-radius:8px; padding:7px 10px; color:var(--text); font-size:11px;
@@ -908,9 +941,8 @@ function toggleOnhand() {
     btn.className = 'ctrl-btn ' + (_onhandMode ? 'onhand-on' : 'onhand-off');
     btn.textContent = _onhandMode ? '⏳ ONHAND ✓' : '⏳ ONHAND';
   }
-  // Saat ONHAND aktif, reset tbl-status-filter agar tidak bentrok
-  const stFil = document.getElementById('tbl-status-filter');
-  if (stFil && _onhandMode) stFil.value = '';
+  // Saat ONHAND aktif, sync checkbox ke CONFIRM+TENTATIVE saja
+  _syncStCbWithOnhand();
   if (_reportData) renderAll();
 }
 
@@ -1589,10 +1621,19 @@ function renderDetailTable() {
     <div class="chart-card full fade-up">
       <div class="tbl-controls">
         <input class="tbl-search" id="tbl-search" placeholder="🔍 Cari customer, venue, package..." oninput="filterDetailTable()">
-        <select class="tbl-filter" id="tbl-status-filter" onchange="filterDetailTable()" ${_onhandMode ? 'disabled title="Nonaktifkan ONHAND untuk filter status"' : ''}>
-          <option value="">Semua Status</option>
-          <option>CONFIRM</option><option>TENTATIVE</option><option>DONE</option><option>CANCEL</option>
-        </select>
+        <!-- Status checkbox multi-select -->
+        <div class="st-filter-wrap" id="st-filter-wrap">
+          <span class="st-filter-lbl">Status:</span>
+          <label class="st-cb-item CONFIRM"   id="stcb-CONFIRM"   onclick="toggleStCb('CONFIRM')">  <input type="checkbox" checked> ✓ Confirm   </label>
+          <label class="st-cb-item TENTATIVE" id="stcb-TENTATIVE" onclick="toggleStCb('TENTATIVE')"><input type="checkbox" checked> ~ Tentative </label>
+          <label class="st-cb-item DONE"      id="stcb-DONE"      onclick="toggleStCb('DONE')">     <input type="checkbox" checked> ✓ Done      </label>
+          <label class="st-cb-item CANCEL"    id="stcb-CANCEL"    onclick="toggleStCb('CANCEL')">   <input type="checkbox" checked> ✗ Cancel    </label>
+          <label class="st-cb-item DIPINJAM"  id="stcb-DIPINJAM"  onclick="toggleStCb('DIPINJAM')"> <input type="checkbox" checked> ⇄ Dipinjam  </label>
+          <label class="st-cb-item POSTPONE"  id="stcb-POSTPONE"  onclick="toggleStCb('POSTPONE')"> <input type="checkbox" checked> ⏩ Postpone  </label>
+          <label class="st-cb-item NS"        id="stcb-N/S"       onclick="toggleStCb('N/S')">      <input type="checkbox" checked> — N/S       </label>
+          <button class="st-cb-all-btn" onclick="stCbSelectAll(true)"  title="Centang semua">Semua</button>
+          <button class="st-cb-all-btn" onclick="stCbSelectAll(false)" title="Hapus semua">Hapus</button>
+        </div>
         <select class="tbl-filter" id="tbl-venue-filter" onchange="filterDetailTable()">
           <option value="">Semua Venue</option>
           <option>Ball Room</option><option>VIP Room</option><option>Teratai Room</option><option>Fox Steak House</option>
@@ -1618,18 +1659,63 @@ function renderDetailTable() {
   return sec;
 }
 
+// ── STATUS CHECKBOX FILTER HELPERS ──────────────────────────────
+const ST_ALL = ['CONFIRM','TENTATIVE','DONE','CANCEL','DIPINJAM','POSTPONE','N/S'];
+// State: set of checked statuses — default semua aktif
+let _stChecked = new Set(ST_ALL);
+
+function toggleStCb(st) {
+  if (_onhandMode) return; // ONHAND aktif → checkbox disabled
+  if (_stChecked.has(st)) _stChecked.delete(st);
+  else _stChecked.add(st);
+  _updateStCbUI();
+  filterDetailTable();
+}
+
+function stCbSelectAll(checked) {
+  if (_onhandMode) return;
+  _stChecked = checked ? new Set(ST_ALL) : new Set();
+  _updateStCbUI();
+  filterDetailTable();
+}
+
+function _updateStCbUI() {
+  const isDisabled = _onhandMode;
+  ST_ALL.forEach(st => {
+    const id  = 'stcb-' + st;
+    const el  = document.getElementById(id);
+    if (!el) return;
+    const checked = _stChecked.has(st);
+    el.classList.toggle('unchecked', !checked);
+    el.classList.toggle('disabled',   isDisabled);
+    const cb = el.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = checked;
+  });
+}
+
+function _syncStCbWithOnhand() {
+  // Saat ONHAND aktif → paksa hanya CONFIRM & TENTATIVE
+  if (_onhandMode) {
+    _stChecked = new Set(['CONFIRM', 'TENTATIVE']);
+  } else {
+    // Kembalikan ke semua saat ONHAND dimatikan
+    _stChecked = new Set(ST_ALL);
+  }
+  _updateStCbUI();
+}
+
 function filterDetailTable() {
   const q      = (document.getElementById('tbl-search')?.value || '').toLowerCase();
-  const stFil  = document.getElementById('tbl-status-filter')?.value || '';
   const vnFil  = document.getElementById('tbl-venue-filter')?.value  || '';
   const tbody  = document.getElementById('detail-tbody');
   if (!tbody) return;
 
-  const events = getFilteredEvents(); // sudah terfilter ONHAND jika aktif
+  const events = getFilteredEvents();
   const filtered = events.filter(e => {
     const txt = [e.customer,e.venue,e.package,e.sales,e.eventType].join(' ').toLowerCase();
-    // Jika ONHAND aktif, abaikan status filter (sudah dihandle di getFilteredEvents)
-    const statusMatch = _onhandMode ? true : (!stFil || e.status === stFil);
+    // Status: cek apakah status event ada di _stChecked
+    const stNorm = (e.status||'').toUpperCase();
+    const statusMatch = _onhandMode ? true : _stChecked.has(stNorm);
     return (!q || txt.includes(q)) &&
            statusMatch &&
            (!vnFil || e.venue.toUpperCase().includes(vnFil.toUpperCase()));
