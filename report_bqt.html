@@ -143,16 +143,6 @@ body {
 }
 .topbar-brand span { font-size:10px; color:var(--muted); font-family:'DM Sans',sans-serif; margin-left:8px; letter-spacing:.1em; text-transform:uppercase; }
 .topbar-controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-/* sel-year gold */
-#sel-year {
-  background:rgba(201,168,76,.1);
-  border-color:rgba(201,168,76,.4);
-  color:var(--gold);
-  font-weight:800;
-  letter-spacing:.04em;
-  min-width:72px;
-}
-#sel-year:focus { border-color:var(--gold2); }
 .ctrl-select {
   background:var(--card); border:1px solid var(--border2); color:var(--text);
   border-radius:8px; padding:6px 10px; font-size:11px; font-family:'DM Sans',sans-serif;
@@ -304,39 +294,6 @@ body {
 
 /* ── DETAIL TABLE ── */
 .tbl-controls { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; align-items:center; }
-/* ── STATUS CHECKBOX FILTER ── */
-.st-filter-wrap {
-  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
-  background:var(--surface); border:1px solid var(--border2);
-  border-radius:10px; padding:5px 10px;
-}
-.st-filter-lbl {
-  font-size:8px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--dim); flex-shrink:0; margin-right:2px;
-}
-.st-cb-item {
-  display:inline-flex; align-items:center; gap:4px;
-  padding:3px 8px; border-radius:20px; cursor:pointer;
-  border:1px solid transparent; transition:all .15s; user-select:none;
-  font-size:10px; font-weight:700;
-}
-.st-cb-item input[type=checkbox] { display:none; }
-.st-cb-item.CONFIRM   { color:#818cf8; border-color:rgba(99,102,241,.25);  background:rgba(99,102,241,.1);  }
-.st-cb-item.TENTATIVE { color:#fbbf24; border-color:rgba(245,158,11,.25);  background:rgba(245,158,11,.1);  }
-.st-cb-item.DONE      { color:#34d399; border-color:rgba(16,185,129,.25);  background:rgba(16,185,129,.1);  }
-.st-cb-item.CANCEL    { color:#f87171; border-color:rgba(239,68,68,.25);   background:rgba(239,68,68,.1);   }
-.st-cb-item.DIPINJAM  { color:#2dd4bf; border-color:rgba(20,184,166,.25);  background:rgba(20,184,166,.1);  }
-.st-cb-item.POSTPONE  { color:#fb923c; border-color:rgba(249,115,22,.25);  background:rgba(249,115,22,.1);  }
-.st-cb-item.NS        { color:#9ca3af; border-color:rgba(156,163,175,.25); background:rgba(156,163,175,.1); }
-/* unchecked = redup */
-.st-cb-item.unchecked { opacity:.28; }
-.st-cb-item.disabled  { opacity:.25; cursor:not-allowed; pointer-events:none; }
-.st-cb-all-btn {
-  font-size:9px; font-weight:700; padding:3px 9px; border-radius:8px; cursor:pointer;
-  background:rgba(255,255,255,.05); border:1px solid var(--border2); color:var(--muted);
-  transition:all .15s;
-}
-.st-cb-all-btn:hover { border-color:var(--gold); color:var(--gold); }
 .tbl-search {
   flex:1; min-width:140px; background:var(--surface); border:1px solid var(--border);
   border-radius:8px; padding:7px 10px; color:var(--text); font-size:11px;
@@ -367,6 +324,42 @@ table.detail-tbl { width:100%; border-collapse:collapse; font-size:11px; }
 .tbl-pax { color:var(--muted); }
 .tbl-empty { text-align:center; padding:30px; color:var(--dim); font-size:12px; }
 .tbl-count { font-size:10px; color:var(--dim); }
+
+/* ── STATUS CHECKBOX FILTER ── */
+.status-cbx-group {
+  display:flex; align-items:center; flex-wrap:wrap; gap:4px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; padding:4px 8px;
+}
+.scbx-label { font-size:9px; color:var(--dim); letter-spacing:.08em; text-transform:uppercase; margin-right:2px; white-space:nowrap; }
+.scbx {
+  display:inline-flex; align-items:center; gap:3px;
+  padding:3px 8px; border-radius:20px; cursor:pointer;
+  font-size:9px; font-weight:700; letter-spacing:.06em;
+  border:1px solid transparent; transition:all .15s;
+  background:rgba(255,255,255,.04); color:var(--muted);
+  user-select:none; white-space:nowrap;
+}
+.scbx input[type=checkbox] { display:none; }
+.scbx:hover { border-color:var(--border2); color:var(--text); }
+/* Checked states per status */
+.scbx:has(input:checked).scbx-CONFIRM   { background:rgba(99,102,241,.2);  color:#818cf8; border-color:rgba(99,102,241,.4); }
+.scbx:has(input:checked).scbx-TENTATIVE { background:rgba(245,158,11,.2);  color:#fbbf24; border-color:rgba(245,158,11,.4); }
+.scbx:has(input:checked).scbx-DONE      { background:rgba(16,185,129,.2);  color:#34d399; border-color:rgba(16,185,129,.4); }
+.scbx:has(input:checked).scbx-CANCEL    { background:rgba(239,68,68,.2);   color:#f87171; border-color:rgba(239,68,68,.4); }
+.scbx:has(input:checked).scbx-DIPINJAM  { background:rgba(93,173,226,.2);  color:#5dade2; border-color:rgba(93,173,226,.4); }
+.scbx:has(input:checked).scbx-POSTPONE  { background:rgba(155,89,182,.2);  color:#c39bd3; border-color:rgba(155,89,182,.4); }
+.scbx:has(input:checked).scbx-NS        { background:rgba(127,140,141,.2); color:#aab7b8; border-color:rgba(127,140,141,.4); }
+.scbx-clear {
+  background:none; border:none; color:var(--dim); cursor:pointer;
+  font-size:10px; padding:2px 4px; border-radius:4px; transition:color .15s;
+  margin-left:2px;
+}
+.scbx-clear:hover { color:var(--red); }
+/* Onhand mode — disable checkbox group */
+.status-cbx-group.disabled { opacity:.4; pointer-events:none; }
+body.light-mode .status-cbx-group { background:rgba(0,0,0,.04); }
+body.light-mode .scbx { background:rgba(0,0,0,.04); }
 
 /* ── ONHAND SECTION ── */
 .onhand-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
@@ -619,10 +612,6 @@ body.light-mode .hm-cell.lv5     { background:rgba(140,100,20,1);   color:#fff; 
         <button id="btn-nett"  onclick="setRevenueMode('nett')"  style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:var(--gold);color:#000;transition:all .2s;">Nett</button>
         <button id="btn-gross" onclick="setRevenueMode('gross')" style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s;">Gross</button>
       </div>
-      <select class="ctrl-select" id="sel-year" onchange="onYearChange()" title="Pilih Tahun">
-        <option value="2026">2026</option>
-        <option value="2027">2027</option>
-      </select>
       <select class="ctrl-select" id="sel-month" onchange="onFilterChange()">
         <option value="ALL">Semua Bulan</option>
         <option value="JANUARI">Januari</option>
@@ -716,7 +705,6 @@ let _idToken   = '';
 let _reportData = null;   // { JANUARI:{events,revenue,pax,count,...}, ... }
 let _budgetData = null;   // [{ bulan, targetRevenue, targetEvents, targetPax }, ...]
 let _selMonth  = 'ALL';
-let _selYear   = new Date().getFullYear(); // default tahun sekarang
 let _revenueMode = 'nett'; // 'nett' atau 'gross'
 let _onhandMode  = false;  // true = tampilkan hanya CONFIRM & TENTATIVE
 const VAT = 1.21; // PPN 11% → sebenarnya 1.11, tapi pakai 1.21 sesuai request
@@ -815,31 +803,7 @@ _auth.onAuthStateChanged(async user => {
     document.getElementById('topbar-user').textContent = user.email || '';
     errEl.textContent = '';
     applyStoredTheme();
-    // Init year selector ke tahun sekarang
-    const ySel2 = document.getElementById('sel-year');
-    if (ySel2) {
-      _selYear = new Date().getFullYear();
-      if (![...ySel2.options].some(o => parseInt(o.value) === _selYear)) {
-        const opt = document.createElement('option');
-        opt.value = _selYear; opt.textContent = _selYear;
-        ySel2.insertBefore(opt, ySel2.firstChild);
-      }
-      ySel2.value = _selYear;
-    }
     await loadAll();
-    // ── Baca ?month= dari URL (dikirim dari tombol Report Banquet di entry.html) ──
-    const _urlMonth = new URLSearchParams(window.location.search).get('month');
-    if (_urlMonth) {
-      const selM = document.getElementById('sel-month');
-      if (selM) {
-        const opt = [...selM.options].find(o => o.value.toUpperCase() === _urlMonth.toUpperCase());
-        if (opt) {
-          selM.value = opt.value;
-          _selMonth  = opt.value;
-          renderAll();
-        }
-      }
-    }
   } catch(e) {
     if (_auth.currentUser) {
       _authVerified = true;
@@ -893,15 +857,13 @@ function showLoading(txt) {
 function hideLoading() { document.getElementById('loading').classList.add('hide'); }
 
 async function gas(params) {
-  // Inject year ke semua request kecuali CHECK_ACCESS
-  const inject = params.action === 'CHECK_ACCESS' ? {} : { year: _selYear };
-  const url = GAS_URL + '?' + new URLSearchParams({ ...params, ...inject, idToken: _idToken });
+  const url = GAS_URL + '?' + new URLSearchParams({ ...params, idToken: _idToken });
   const res = await fetch(url, { redirect:'follow' });
   return res.json();
 }
 
 async function loadAll() {
-  showLoading('Memuat report ' + _selYear + '...');
+  showLoading('Memuat report data...');
   try {
     _idToken = await _auth.currentUser.getIdToken(true);
     const [repRes, budRes] = await Promise.all([
@@ -919,18 +881,14 @@ async function loadAll() {
   } finally { hideLoading(); }
 }
 
-// Ganti tahun → clear data → reload dari spreadsheet baru
-async function onYearChange() {
-  const ySel = document.getElementById('sel-year');
-  _selYear = parseInt(ySel.value) || new Date().getFullYear();
-  _reportData = null;
-  _budgetData = null;
-  await loadAll();
-}
-
 function onFilterChange() {
   _selMonth = document.getElementById('sel-month').value;
   if (_reportData) renderAll();
+}
+
+function clearStatusFilter() {
+  document.querySelectorAll('#status-cbx-group .scbx-input').forEach(cb => cb.checked = false);
+  filterDetailTable();
 }
 
 // ── ONHAND TOGGLE ────────────────────────────────────────────────
@@ -941,8 +899,17 @@ function toggleOnhand() {
     btn.className = 'ctrl-btn ' + (_onhandMode ? 'onhand-on' : 'onhand-off');
     btn.textContent = _onhandMode ? '⏳ ONHAND ✓' : '⏳ ONHAND';
   }
-  // Saat ONHAND aktif, sync checkbox ke CONFIRM+TENTATIVE saja
-  _syncStCbWithOnhand();
+  // Disable/enable checkbox status filter saat ONHAND toggle
+  const cbxGroup = document.getElementById('status-cbx-group');
+  if (cbxGroup) {
+    if (_onhandMode) {
+      cbxGroup.classList.add('disabled');
+      cbxGroup.title = 'Nonaktifkan ONHAND untuk filter status';
+    } else {
+      cbxGroup.classList.remove('disabled');
+      cbxGroup.title = '';
+    }
+  }
   if (_reportData) renderAll();
 }
 
@@ -971,14 +938,7 @@ function getFilteredEvents() {
     evts = (_reportData[_selMonth]?.events || []).map(e => ({...e, bulan:_selMonth}));
   }
   // ONHAND mode: hanya CONFIRM & TENTATIVE
-  if (_onhandMode) {
-    evts = evts.filter(e => e.status === 'CONFIRM' || e.status === 'TENTATIVE');
-  } else {
-    // FIX: terapkan checkbox filter ke SEMUA caller (KPI, chart, tabel)
-    if (_stChecked && _stChecked.size < ST_ALL.length) {
-      evts = evts.filter(e => _stChecked.has((e.status||'').toUpperCase()));
-    }
-  }
+  if (_onhandMode) evts = evts.filter(e => e.status === 'CONFIRM' || e.status === 'TENTATIVE');
   return evts;
 }
 
@@ -1002,8 +962,6 @@ function renderAll() {
   container.appendChild(renderSalesLeaderboard());
   container.appendChild(renderDetailTable());
   container.appendChild(renderBudgetEditor());
-  // FIX: setelah render ulang DOM, sync UI checkbox kembali
-  _updateStCbUI();
 }
 
 // ── SECTION 1: KPI ──────────────────────────────────────────────
@@ -1034,7 +992,7 @@ function renderKPI() {
   sec.innerHTML = `
     <div class="section-hdr">
       <div class="section-title">◆ KPI Summary</div>
-      <div class="section-sub">${_selMonth === 'ALL' ? 'Semua Bulan ' + _selYear : _selMonth + ' ' + _selYear}</div>
+      <div class="section-sub">${_selMonth === 'ALL' ? 'Semua Bulan 2026' : _selMonth + ' 2026'}</div>
     </div>
     <div class="kpi-grid fade-up">
       <div class="kpi-card gold">
@@ -1532,8 +1490,8 @@ function renderSalesLeaderboard() {
 
   // ── Label judul sesuai filter ──
   const monthLabel = _selMonth === 'ALL'
-    ? 'Semua Bulan ' + _selYear
-    : _selMonth.charAt(0) + _selMonth.slice(1).toLowerCase() + ' ' + _selYear;
+    ? 'Semua Bulan'
+    : _selMonth.charAt(0) + _selMonth.slice(1).toLowerCase() + ' 2026';
 
   const rows = sorted.map(([name, d], i) => {
     const splitKey  = name.toUpperCase();
@@ -1630,18 +1588,14 @@ function renderDetailTable() {
     <div class="chart-card full fade-up">
       <div class="tbl-controls">
         <input class="tbl-search" id="tbl-search" placeholder="🔍 Cari customer, venue, package..." oninput="filterDetailTable()">
-        <!-- Status checkbox multi-select -->
-        <div class="st-filter-wrap" id="st-filter-wrap">
-          <span class="st-filter-lbl">Status:</span>
-          <label class="st-cb-item CONFIRM"   id="stcb-CONFIRM"   onclick="toggleStCb('CONFIRM')">  <input type="checkbox" checked> ✓ Confirm   </label>
-          <label class="st-cb-item TENTATIVE" id="stcb-TENTATIVE" onclick="toggleStCb('TENTATIVE')"><input type="checkbox" checked> ~ Tentative </label>
-          <label class="st-cb-item DONE"      id="stcb-DONE"      onclick="toggleStCb('DONE')">     <input type="checkbox" checked> ✓ Done      </label>
-          <label class="st-cb-item CANCEL"    id="stcb-CANCEL"    onclick="toggleStCb('CANCEL')">   <input type="checkbox" checked> ✗ Cancel    </label>
-          <label class="st-cb-item DIPINJAM"  id="stcb-DIPINJAM"  onclick="toggleStCb('DIPINJAM')"> <input type="checkbox" checked> ⇄ Dipinjam  </label>
-          <label class="st-cb-item POSTPONE"  id="stcb-POSTPONE"  onclick="toggleStCb('POSTPONE')"> <input type="checkbox" checked> ⏩ Postpone  </label>
-          <label class="st-cb-item NS"        id="stcb-NS"        onclick="toggleStCb('N/S')">      <input type="checkbox" checked> — N/S       </label>
-          <button class="st-cb-all-btn" onclick="stCbSelectAll(true)"  title="Centang semua">Semua</button>
-          <button class="st-cb-all-btn" onclick="stCbSelectAll(false)" title="Hapus semua">Hapus</button>
+        <div class="status-cbx-group" id="status-cbx-group" title="Filter Status">
+          <span class="scbx-label">Status:</span>
+          ${['CONFIRM','TENTATIVE','DONE','CANCEL','DIPINJAM','POSTPONE','N/S'].map(s=>`
+            <label class="scbx scbx-${s.replace('/','')}" title="${s}">
+              <input type="checkbox" value="${s}" class="scbx-input" onchange="filterDetailTable()">
+              <span>${s}</span>
+            </label>`).join('')}
+          <button class="scbx-clear" onclick="clearStatusFilter()" title="Reset semua">✕</button>
         </div>
         <select class="tbl-filter" id="tbl-venue-filter" onchange="filterDetailTable()">
           <option value="">Semua Venue</option>
@@ -1668,66 +1622,24 @@ function renderDetailTable() {
   return sec;
 }
 
-// ── STATUS CHECKBOX FILTER HELPERS ──────────────────────────────
-const ST_ALL = ['CONFIRM','TENTATIVE','DONE','CANCEL','DIPINJAM','POSTPONE','N/S'];
-// State: set of checked statuses — default semua aktif
-let _stChecked = new Set(ST_ALL);
-
-function toggleStCb(st) {
-  if (_onhandMode) return; // ONHAND aktif → checkbox disabled
-  if (_stChecked.has(st)) _stChecked.delete(st);
-  else _stChecked.add(st);
-  _updateStCbUI();
-  // FIX: re-render semua (KPI + chart + tabel) bukan hanya tabel
-  renderAll();
-}
-
-function stCbSelectAll(checked) {
-  if (_onhandMode) return;
-  _stChecked = checked ? new Set(ST_ALL) : new Set();
-  _updateStCbUI();
-  // FIX: re-render semua bukan hanya tabel
-  renderAll();
-}
-
-function _updateStCbUI() {
-  const isDisabled = _onhandMode;
-  ST_ALL.forEach(st => {
-    // FIX: N/S menggunakan id 'stcb-NS' (slash tidak valid di HTML id)
-    const id  = 'stcb-' + st.replace('/','');
-    const el  = document.getElementById(id);
-    if (!el) return;
-    const checked = _stChecked.has(st);
-    el.classList.toggle('unchecked', !checked);
-    el.classList.toggle('disabled',   isDisabled);
-    const cb = el.querySelector('input[type=checkbox]');
-    if (cb) cb.checked = checked;
-  });
-}
-
-function _syncStCbWithOnhand() {
-  // Saat ONHAND aktif → paksa hanya CONFIRM & TENTATIVE
-  if (_onhandMode) {
-    _stChecked = new Set(['CONFIRM', 'TENTATIVE']);
-  } else {
-    // Kembalikan ke semua saat ONHAND dimatikan
-    _stChecked = new Set(ST_ALL);
-  }
-  _updateStCbUI();
-}
-
 function filterDetailTable() {
   const q      = (document.getElementById('tbl-search')?.value || '').toLowerCase();
+  // Multi-checkbox status filter
+  const checkedBoxes = document.querySelectorAll('#status-cbx-group .scbx-input:checked');
+  const stChecked = Array.from(checkedBoxes).map(cb => cb.value);
+  // Onhand override: jika aktif, paksa hanya CONFIRM & TENTATIVE
+  const stFil = _onhandMode ? ['CONFIRM','TENTATIVE'] : (stChecked.length > 0 ? stChecked : null);
   const vnFil  = document.getElementById('tbl-venue-filter')?.value  || '';
   const tbody  = document.getElementById('detail-tbody');
   if (!tbody) return;
 
-  const events = getFilteredEvents();  // sudah terfilter oleh _stChecked
+  const events = getFilteredEvents(); // sudah terfilter ONHAND jika aktif
   const filtered = events.filter(e => {
     const txt = [e.customer,e.venue,e.package,e.sales,e.eventType].join(' ').toLowerCase();
-    // FIX: status filter sudah ditangani getFilteredEvents()
-    // di sini hanya filter text search dan venue
+    // stFil = null (semua) atau array status yang dipilih
+    const statusMatch = !stFil || stFil.includes(e.status);
     return (!q || txt.includes(q)) &&
+           statusMatch &&
            (!vnFil || e.venue.toUpperCase().includes(vnFil.toUpperCase()));
   });
 
@@ -2191,7 +2103,7 @@ function openBkModal(eventObj) {
   // Fetch detail via GAS CHECK action
   const mm  = MONTH_NUM[eventObj.bulan] || '01';
   const dd  = String(eventObj.day || 1).padStart(2, '0');
-  const dateStr = `${_selYear}-${mm}-${dd}`;
+  const dateStr = `2026-${mm}-${dd}`;
 
   _fetchBkDetail(eventObj, dateStr, fetchId, window._bkAbortCtrl.signal);
 }
@@ -2252,7 +2164,7 @@ async function _fetchBkDetail(ev, dateStr, fetchId, signal) {
   body.innerHTML = `
     <div class="bk-status-row">
       <span class="bk-status-badge ${d.status}">${d.status}</span>
-      <span class="bk-date-chip">📅 ${ev.bulan} ${ev.day}, ${_selYear}</span>
+      <span class="bk-date-chip">📅 ${ev.bulan} ${ev.day}, 2026</span>
       ${ovfBadge}
     </div>
 
@@ -2347,11 +2259,11 @@ async function _fetchBkDetail(ev, dateStr, fetchId, signal) {
 }
 
 function openEntryEdit(dateStr, venue, bulan) {
+  // Cari entry.html di path yang sama dengan report.html
   const base = window.location.href.replace(/[^\/]*$/, '');
   const url  = base + 'entry.html?prefill_date=' + encodeURIComponent(dateStr)
                     + '&prefill_venue=' + encodeURIComponent(venue)
-                    + '&prefill_month=' + encodeURIComponent(bulan)
-                    + '&prefill_year='  + encodeURIComponent(_selYear);
+                    + '&prefill_month=' + encodeURIComponent(bulan);
   window.open(url, '_blank');
 }
 
